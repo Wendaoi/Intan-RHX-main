@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/homebrew/opt/qt/include/**"  // 替换为你的实际路径，如 "/opt/homebrew/opt/qt/include/**"
+            ],
+            "browse": {
+                "path": [
+                "${workspaceFolder}",
+                "/opt/homebrew/opt/qt/include"    // 替换为你的实际路径，如 "/opt/homebrew/opt/qt/include"
+                ]
+            },
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "macos-clang-arm64"
+        }
+    ],
+    "version": 4
+}
