@@ -37,7 +37,6 @@
 #include "abstractrhxcontroller.h"
 #include "datastreamfifo.h"
 
-const int BufferSizeInBlocks = 32;
 
 class USBDataThread : public QThread
 {

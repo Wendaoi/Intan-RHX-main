@@ -1,1 +1,23 @@
 /*.user
+./build/
+./IntanRHX.app/
+./Makefile
+./
+
+# 中间产物
+*.o
+*.obj
+*.so
+*.dylib
+moc_*.cpp
+ui_*.h
+*.tmp
+*.tmp.*
+*.qrc.tmp
+*.autosave
+
+# 可执行文件和构建产物
+IntanRHX
+*.exe
+*.dll
+core

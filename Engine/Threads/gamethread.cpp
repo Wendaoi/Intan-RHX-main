@@ -26,63 +26,167 @@
 #include "controllerinterface.h"
 #include <QElapsedTimer>
 #include <cmath>
+#include <algorithm>
+#include <csignal>
 
 GameThread::GameThread(WaveformFifo* waveformFifo_, SystemState* state_, QObject* parent) :
     QThread(parent),
     waveformFifo(waveformFifo_),
     state(state_),
+    pongGame(new PongGame()),
     thresholdMultiplier(5.0f),
-    minThreshold(20.0f),
-    refractoryPeriod(1000)  // 默认1000个样本的不应期
+    minThreshold(-20.0f), // 默认阈值改为负数
+    refractoryPeriod(1000),  // 默认1000个样本的不应期
+    lastStatsUpdate(0)
 {
     keepGoing = false;
     running = false;
     stopThread = false;
     lastStatsUpdate = 0;
+
+    // 运动区域通道在此处不再硬编码
 }
 
 GameThread::~GameThread()
 {
     cleanupChannelProcessors();
+    delete pongGame;
 }
 
 void GameThread::run()
 {
-    const int NumSamples = RHXDataBlock::samplesPerDataBlock(state->getControllerTypeEnum());
-    
+    const int NumSamplesPer10ms = 200; // 20000Hz / 100Hz = 200个样本
+
+    // macOS退出信号处理
+#ifdef Q_OS_MAC
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGTERM);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGHUP);
+    sigaddset(&set, SIGKILL);
+    pthread_sigmask(SIG_BLOCK, &set, nullptr);
+#endif
+
     // 初始化通道处理器
     initializeChannelProcessors();
-    
+
+    // 初始化统计数据
+    int totalRallyCount = 0;
+    int totalRallyLengthSum = 0;
+    float averageRallyLength = 0.0f;
+
     while (!stopThread) {
         if (keepGoing) {
             running = true;
-            
-            QElapsedTimer statsTimer;
-            statsTimer.start();
-            lastStatsUpdate = 0;
-            
+
             while (keepGoing && !stopThread) {
-                if (waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamples, false)) {
-                    // 处理新数据块
-                    processSampleBlock(NumSamples);
-                    
-                    // 更新统计信息（每秒一次）
-                    if (statsTimer.elapsed() >= 1000) {
-                        updateSpikesPerSecond();
-                        statsTimer.restart();
+                // 1. 等待并处理一个10ms的数据块，macOS上使用非阻塞读取避免退出时堵塞
+#ifdef Q_OS_MAC
+                if (waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamplesPer10ms, false)) {
+#else
+                if (waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamplesPer10ms, true)) {
+#endif
+                    processSampleBlock(NumSamplesPer10ms);
+
+                    // 2. 游戏更新：严格在处理完数据后执行
+                    // 统计运动区域的尖峰
+                    int spikesUp = 0;
+                    int spikesDown = 0;
+                    for(const auto& chName : motorRegion1Channels) {
+                        if (spikeCounters.count(chName)) {
+                            spikesUp += spikeCounters[chName];
+                        }
                     }
-                    
+                    for(const auto& chName : motorRegion2Channels) {
+                        if (spikeCounters.count(chName)) {
+                            spikesDown += spikeCounters[chName];
+                        }
+                    }
+
+                    // 更新游戏并获取事件
+                    GameEvent event = pongGame->update(spikesUp, spikesDown);
+
+                    // 处理游戏事件以触发反馈
+                    switch(event) {
+                        case GameEvent::BallHitPlayerPaddle:
+                            // Hit: 所有8个刺激电极同时进行100Hz持续100ms的双相脉冲刺激
+                            triggerHitStimulus();
+                            emit sendHitStim();
+                            break;
+                        case GameEvent::PlayerMissed:
+                            if (pongGame->getCondition() == ExperimentCondition::Stimulus) {
+                                // Miss in Stimulus: 所有电极进行5Hz持续4秒的150mV刺激
+                                triggerMissStimulus();
+                                emit sendMissStim();
+                            } else if (pongGame->getCondition() == ExperimentCondition::Silent) {
+                                // Miss in Silent: 停止所有刺激
+                                triggerSilentStimulus();
+                                emit stopAllStim();
+                            }
+                            // NoFeedback模式下不提供额外反馈，但游戏逻辑已在PongGame中处理
+                            break;
+                        default:
+                            break;
+                    }
+
+                    // 发送位置刺激
+                    emit sendSensoryStim(pongGame->getSensoryStimZone());
+
+                    // 更新rally统计 (仅在miss事件发生时)
+                    if (event == GameEvent::PlayerMissed) {
+                        int rallyLength = pongGame->getBounces();
+                        totalRallyLengthSum += rallyLength;
+                        totalRallyCount++;
+                        if (totalRallyCount > 0) {
+                            averageRallyLength = static_cast<float>(totalRallyLengthSum) / totalRallyCount;
+                        }
+                    }
+
+                    // 发送游戏状态到UI
+                    GameState currentState;
+                    currentState.paddle1Y = pongGame->getPaddle1Y();
+                    currentState.ballX = pongGame->getBallX();
+                    currentState.ballY = pongGame->getBallY();
+                    currentState.paddle2Y = 0; // AI paddle not used
+                    currentState.paddleHeight = pongGame->getPaddleHeight(); // 球拍高度
+                    currentState.bounces = pongGame->getBounces(); // 当前回合的反弹次数
+                    currentState.rallyCount = totalRallyCount;     // 总回合数
+                    currentState.avgRallyLength = averageRallyLength; // 平均回合长度
+                    emit gameDataUpdated(currentState);
+
+                    // 重置尖峰计数器
+                    for (auto& counter : spikeCounters) {
+                        counter.second = 0;
+                    }
+
                     waveformFifo->freeOldData(WaveformFifo::ReaderDisk);
                 } else {
-                    usleep(1000);  // 等待新数据
+                    // 如果FIFO中没有足够的数据，短暂休眠以避免CPU空转
+                    usleep(100);
+                    // macOS: 更频繁检查退出条件，避免堵塞
+#ifdef Q_OS_MAC
+                    if (stopThread || !keepGoing) continue;
+#endif
                 }
+
+                // macOS: 在每轮循环后检查退出信号
+#ifdef Q_OS_MAC
+                if (stopThread || !keepGoing) break;
+#endif
             }
             running = false;
         } else {
-            usleep(10000);  // 线程未激活时等待
+            // 非活跃时更频繁检查退出条件
+            usleep(1000);
         }
+
+        // macOS退出信号检查
+#ifdef Q_OS_MAC
+        if (stopThread) break;
+#endif
     }
-    
+
     cleanupChannelProcessors();
 }
 
@@ -120,6 +224,25 @@ void GameThread::setMinThreshold(float minThresholdValue)
 void GameThread::setRefractoryPeriod(int samples)
 {
     refractoryPeriod = samples;
+}
+
+void GameThread::setExperimentCondition(ExperimentCondition condition)
+{
+    if (pongGame) {
+        pongGame->setCondition(condition);
+    }
+}
+
+void GameThread::setMotorRegions(const std::vector<QString>& upChannels, const std::vector<QString>& downChannels)
+{
+    motorRegion1Channels.clear();
+    motorRegion2Channels.clear();
+    for(const auto& ch : upChannels) {
+        motorRegion1Channels.push_back(ch);
+    }
+    for(const auto& ch : downChannels) {
+        motorRegion2Channels.push_back(ch);
+    }
 }
 
 void GameThread::setStimChannelEnabled(const QString& channelName, bool enabled)
@@ -199,7 +322,7 @@ void GameThread::initializeChannelProcessors()
         spikesPerSecond[processor.name] = 0.0f;
     }
     
-    emit statusUpdated(QString("Initialized %1 channel processors").arg(channelProcessors.size()));
+    emit statusUpdated("Initialized " + QString::number(channelProcessors.size()) + " channel processors");
 }
 
 void GameThread::cleanupChannelProcessors()
@@ -235,8 +358,9 @@ void GameThread::processSampleBlock(int numSamples)
             // 应用低通滤波器平滑绝对值
             processor.smoothedAbsValue = processor.lowpassFilter->filterOne(absValue);
             
-            // 计算动态阈值
-            processor.threshold = (std::max)(minThreshold, processor.smoothedAbsValue * thresholdMultiplier);
+            // 计算动态阈值 (注意：规则是<-5mV，这里我们使用一个更通用的动态阈值)
+            // 阈值现在是负数
+            processor.threshold = (std::min)(minThreshold, -processor.smoothedAbsValue * thresholdMultiplier);
             
             // 检测尖峰
             int64_t timestamp = waveformFifo->getTimeStamp(WaveformFifo::ReaderDisk, t);
@@ -259,15 +383,15 @@ void GameThread::processSampleBlock(int numSamples)
     }
 }
 
-bool GameThread::detectSpike(ChannelProcessor& processor, float value, int64_t timestamp)
+bool GameThread::detectSpike(ChannelProcessor& processor, float value, int64_t /*timestamp*/)
 {
     // 检查是否在不应期内
     if (processor.samplesSinceLastSpike < refractoryPeriod) {
         return false;
     }
     
-    // 检测是否超过阈值且为正向过零
-    if (processor.prevValue < processor.threshold && value >= processor.threshold) {
+    // 检测是否超过负阈值且为负向过零
+    if (processor.prevValue > processor.threshold && value <= processor.threshold) {
         processor.samplesSinceLastSpike = 0;
         return true;
     }
@@ -279,15 +403,51 @@ void GameThread::applyStimParameters(const QString& channelName)
 {
     // 注意：实际应用刺激参数需要ControllerInterface的参与
     // 这里只是一个接口示例，实际实现需要与ControllerInterface协作
-    emit statusUpdated(QString("Stim parameters updated for channel: %1").arg(channelName));
+    emit statusUpdated("Stim parameters updated for channel: " + channelName);
 }
 
 void GameThread::updateSpikesPerSecond()
 {
+    // 此函数现在可以用于更新UI的SPS显示，但游戏逻辑不再依赖它
+    // The spike counters are now reset every 10ms for game logic.
+    // This function might need rethinking if a separate 1-second counter is needed for display.
     emit spikesPerSecondUpdated(spikesPerSecond);
-    
-    // 重置计数器
-    for (auto& counter : spikeCounters) {
-        counter.second = 0;
-    }
+}
+
+// 刺激触发函数实现
+void GameThread::triggerHitStimulus()
+{
+    // Hit: 所有8个刺激电极同时进行100Hz持续100ms的双相脉冲刺激
+    // 此处需要设置每个刺激电极的参数
+
+    // 暂时通过信号发出，实际的刺激控制需要通过ControllerInterface
+    emit statusUpdated("Hit stimulus triggered: 100Hz, 100ms for all 8 electrodes");
+
+    // TODO: 实际实现时需要：
+    // 1. 获取所有8个刺激电极通道
+    // 2. 设置每个通道为100Hz频率，100ms持续时间
+    // 3. 同时触发所有8个电极
+}
+
+void GameThread::triggerMissStimulus()
+{
+    // Miss in Stimulus mode: 所有电极进行5Hz持续4秒的150mV刺激
+    emit statusUpdated("Miss stimulus triggered: 5Hz, 4s, 150mV for all electrodes");
+
+    // TODO: 实际实现时需要：
+    // 1. 获取所有刺激电极通道
+    // 2. 设置阶段一刺激幅度为150mV，相位为-150mV (双相)
+    // 3. 设置频率为5Hz，持续时间为4秒
+    // 4. 触发所有8个电极同时进行刺激
+}
+
+void GameThread::triggerSilentStimulus()
+{
+    // Silent mode: 停止所有刺激一段时间，然后让游戏以随机方向重新开始
+    emit statusUpdated("Silent mode: Stopping all stimulation temporarily");
+
+    // TODO: 实际实现时需要：
+    // 1. 停止所有8个刺激电极的刺激
+    // 2. 等待一段时间后（例如2秒）
+    // 3. 使球以随机向量重新开始运动
 }

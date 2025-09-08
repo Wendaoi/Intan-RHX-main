@@ -56,6 +56,7 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     spikeSortingDialog(nullptr),
     audioThread(nullptr),
     saveToDiskThread(nullptr),
+    gameThread(nullptr), // 初始化GameThread指针
     audioEnabled(false),
     tcpDataOutputEnabled(false),
     is7310(is7310_)
@@ -70,7 +71,7 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     
     try {
         qDebug() << "[DEBUG ControllerInterface] Connecting state signal...";
-        connect(state, SIGNAL(stateChanged()), this, SLOT(updateFromState()));
+        QObject::connect(state, &SystemState::stateChanged, this, &ControllerInterface::updateFromState);
         
         qDebug() << "[DEBUG ControllerInterface] Opening controller...";
         openController(boardSerialNumber);
@@ -110,8 +111,8 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
 
         qDebug() << "[DEBUG ControllerInterface] Configuring USBDataThread...";
         usbDataThread->setNumUsbBlocksToRead(state->playback->getValue() ? 1 : RHXDataBlock::blocksFor30Hz(state->getSampleRateEnum()));
-        connect(usbDataThread, SIGNAL(finished()), usbDataThread, SLOT(deleteLater()));
-        connect(usbDataThread, SIGNAL(hardwareFifoReport(double)), this, SLOT(updateHardwareFifo(double)));
+        QObject::connect(usbDataThread, &USBDataThread::finished, usbDataThread, &QObject::deleteLater);
+        QObject::connect(usbDataThread, &USBDataThread::hardwareFifoReport, this, &ControllerInterface::updateHardwareFifo);
         qDebug() << "[DEBUG ControllerInterface] USBDataThread configured";
 
         qDebug() << "[DEBUG ControllerInterface] Initializing controller...";
@@ -158,18 +159,32 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     }
 
     waveformProcessorThread = new WaveformProcessorThread(state, rhxController->getNumEnabledDataStreams(), rhxController->getSampleRate(), usbStreamFifo, waveformFifo, xpuController, this);
-    connect(waveformProcessorThread, SIGNAL(finished()), waveformProcessorThread, SLOT(deleteLater()));
-    connect(waveformProcessorThread, SIGNAL(cpuLoadPercent(double)), this, SLOT(updateWaveformProcessorCpuLoad(double)));
+    QObject::connect(waveformProcessorThread, &WaveformProcessorThread::finished, waveformProcessorThread, &QObject::deleteLater);
+    QObject::connect(waveformProcessorThread, &WaveformProcessorThread::cpuLoadPercent, this, &ControllerInterface::updateWaveformProcessorCpuLoad);
 
     saveToDiskThread = new SaveToDiskThread(waveformFifo, state, this);
-    connect(saveToDiskThread, SIGNAL(finished()), saveToDiskThread, SLOT(deleteLater()));
+    QObject::connect(saveToDiskThread, &SaveToDiskThread::finished, saveToDiskThread, &QObject::deleteLater);
     if (dataFileReader) {
         // Establish connections so that stimulation amplitudes read from playback file can be re-saved.
-        connect(dataFileReader, SIGNAL(setPosStimAmplitude(int,int,int)),
-                saveToDiskThread, SLOT(setPosStimAmplitude(int,int,int)));
-        connect(dataFileReader, SIGNAL(setNegStimAmplitude(int,int,int)),
-                saveToDiskThread, SLOT(setNegStimAmplitude(int,int,int)));
+        QObject::connect(dataFileReader, &DataFileReader::setPosStimAmplitude,
+                saveToDiskThread, &SaveToDiskThread::setPosStimAmplitude);
+        QObject::connect(dataFileReader, &DataFileReader::setNegStimAmplitude,
+                saveToDiskThread, &SaveToDiskThread::setNegStimAmplitude);
     }
+
+    // 创建并配置GameThread
+    gameThread = new GameThread(waveformFifo, state, this);
+    QObject::connect(gameThread, &GameThread::finished, gameThread, &QObject::deleteLater);
+    // 连接游戏刺激信号到处理槽
+    QObject::connect(gameThread, &GameThread::sendSensoryStim, this, &ControllerInterface::handleSensoryStim);
+    QObject::connect(gameThread, &GameThread::sendHitStim, this, &ControllerInterface::handleHitStim);
+    QObject::connect(gameThread, &GameThread::sendMissStim, this, &ControllerInterface::handleMissStim);
+    QObject::connect(gameThread, &GameThread::stopAllStim, this, &ControllerInterface::handleStopAllStim);
+    // 将游戏数据更新信号从GameThread传递到UI
+    QObject::connect(gameThread, &GameThread::gameDataUpdated, this, &ControllerInterface::onGameDataUpdated);
+
+    // 启动GameThread的事件循环
+    gameThread->start();
 
     currentSweepPosition = 0;
 
@@ -185,6 +200,22 @@ ControllerInterface::~ControllerInterface()
     saveToDiskThread->close();
     saveToDiskThread->wait();
     delete saveToDiskThread;
+
+    if (gameThread) {
+        gameThread->close();
+
+        // 使用超时等待机制，避免macOS上的无限阻塞
+        bool exitedGracefully = gameThread->wait(3000);  // 最长等待3秒
+
+        if (!exitedGracefully) {
+            qDebug() << "[WARNING] GameThread did not exit gracefully in ControllerInterface destructor, terminating";
+            gameThread->terminate();  // 强力终止
+            gameThread->wait(1000);   // 再等待1秒
+        }
+
+        delete gameThread;
+        gameThread = nullptr;
+    }
 
     waveformProcessorThread->close();
     waveformProcessorThread->wait();
@@ -220,8 +251,16 @@ void ControllerInterface::outOfMemoryError(double memRequiredGB)
     exit(EXIT_FAILURE);
 }
 
+void ControllerInterface::updateCurrentAudioChannel(QString name)
+{
+    currentAudioChannel = name;
+}
+
 void ControllerInterface::updateFromState()
 {
+    // 防崩溃保护：确保关键对象仍然有效
+    if (!state || !rhxController) return;
+
     // Check if audio enabled has changed.
     if (state->audioEnabled->getValue() != audioEnabled)
         toggleAudioThread(state->audioEnabled->getValue());
@@ -236,8 +275,8 @@ void ControllerInterface::toggleAudioThread(bool enabled)
     if (enabled) {
         audioEnabled = true;
         audioThread = new AudioThread(state, waveformFifo, rhxController->getSampleRate());
-        connect(audioThread, SIGNAL(finished()), audioThread, SLOT(deleteLater()));
-        connect(audioThread, SIGNAL(newChannel(QString)), this, SLOT(updateCurrentAudioChannel(QString)));
+        QObject::connect(audioThread, &AudioThread::finished, audioThread, &QObject::deleteLater);
+        QObject::connect(audioThread, &AudioThread::newChannel, this, &ControllerInterface::updateCurrentAudioChannel);
 
         // This starts the thread running, ideally on its own CPU core.
         audioThread->start();
@@ -256,10 +295,107 @@ void ControllerInterface::toggleAudioThread(bool enabled)
     }
 }
 
-void ControllerInterface::updateCurrentAudioChannel(QString name)
+void ControllerInterface::toggleGameThread(bool enabled)
 {
-    currentAudioChannel = name;
-    state->forceUpdate();
+    if (!gameThread) return;
+
+    if (enabled) {
+        // 配置运动区域通道 (示例，应从UI或配置文件加载)
+        std::vector<QString> upChannels = {"A-000", "A-001"};
+        std::vector<QString> downChannels = {"A-002", "A-003"};
+        gameThread->setMotorRegions(upChannels, downChannels);
+        gameThread->startRunning();
+    } else {
+        gameThread->stopRunning();
+    }
+}
+
+void ControllerInterface::setGameThresholdMultiplier(double multiplier)
+{
+    if (gameThread) gameThread->setThresholdMultiplier(multiplier);
+}
+
+void ControllerInterface::setGameMinThreshold(double minThreshold)
+{
+    if (gameThread) gameThread->setMinThreshold(minThreshold);
+}
+
+void ControllerInterface::setGameRefractoryPeriod(int samples)
+{
+    if (gameThread) gameThread->setRefractoryPeriod(samples);
+}
+
+void ControllerInterface::setGameExperimentCondition(int condition)
+{
+    if (gameThread) {
+        // 假设UI发送的int可以映射到ExperimentCondition枚举
+        gameThread->setExperimentCondition(static_cast<ExperimentCondition>(condition));
+    }
+}
+
+void ControllerInterface::handleSensoryStim(int zone)
+{
+    // 示例：将8个区域映射到8个不同的刺激通道
+    // 实际通道名称需要根据硬件配置
+    if (zone < 0 || zone > 7) return;
+    QString channelName = "A-0" + QString::number(8 + zone); // 假设感觉通道为 A-008 到 A-015
+    
+    // 触发一次短暂的双相脉冲
+    // 这里的参数(幅度、持续时间)应根据实验设计调整
+    // setStimChannelParameters(channelName, 1.0, 50); // 50us脉冲
+    // triggerStimChannel(channelName, 10.0); // 10uA幅度
+    // 注意: 实际的刺激函数需要实现
+}
+
+void ControllerInterface::handleHitStim()
+{
+    // 成功拦截: 所有感觉电极以100Hz刺激100ms
+    for (int i = 0; i < 8; ++i) {
+        QString channelName = "A-0" + QString::number(8 + i);
+        // setStimChannelParameters(channelName, 100.0, 50); // 100Hz, 50us脉冲
+        // 启用通道的脉冲串模式
+        Channel* channel = state->signalSources->channelByName(channelName);
+        if(channel) {
+            StimParameters* params = channel->stimParameters;
+            params->pulseOrTrain->setIndex(PulseTrain);
+            params->numberOfStimPulses->setValue(10); // 100Hz * 100ms = 10个脉冲
+            params->firstPhaseAmplitude->setValue(15.0); // 15uA幅度
+            uploadStimParameters(channel); // 上传参数
+            setManualStimTrigger(i, true); // 触发脉冲串 (假设手动触发器0-7对应感觉通道)
+            setManualStimTrigger(i, false);
+        }
+    }
+}
+
+void ControllerInterface::handleMissStim()
+{
+    // 未成功拦截: 5Hz刺激4秒, 150mV
+    // 注意：电压控制需要RHS控制器，这里用电流刺激模拟
+    // 随机选择一个通道进行刺激
+    int zone = rand() % 8;
+    QString channelName = "A-0" + QString::number(8 + zone);
+    
+    // setStimChannelParameters(channelName, 5.0, 100); // 5Hz, 100us脉冲
+    Channel* channel = state->signalSources->channelByName(channelName);
+    if(channel) {
+        StimParameters* params = channel->stimParameters;
+        params->pulseOrTrain->setIndex(PulseTrain);
+        params->numberOfStimPulses->setValue(20); // 5Hz * 4s = 20个脉冲
+        params->firstPhaseAmplitude->setValue(30.0); // 较大电流模拟150mV效果
+        uploadStimParameters(channel);
+        setManualStimTrigger(zone, true);
+        setManualStimTrigger(zone, false);
+    }
+}
+
+void ControllerInterface::handleStopAllStim()
+{
+    // 停止所有感觉通道的刺激
+    for (int i = 0; i < 8; ++i) {
+        // QString channelName = QString("A-0%1").arg(8 + i);
+        // setStimChannelEnabled(channelName, false);
+        // 注意: 实际的停止刺激函数需要实现
+    }
 }
 
 void ControllerInterface::runTCPDataOutputThread()
@@ -272,7 +408,7 @@ void ControllerInterface::runTCPDataOutputThread()
         state->tcpWaveformDataCommunicator->moveToThread(tcpDataOutputThread);
         state->tcpSpikeDataCommunicator->moveToThread(tcpDataOutputThread);
 
-        connect(tcpDataOutputThread, SIGNAL(finished()), tcpDataOutputThread, SLOT(deleteLater()));
+        QObject::connect(tcpDataOutputThread, &TCPDataOutputThread::finished, tcpDataOutputThread, &QObject::deleteLater);
 
         // This starts the thread running, ideally on its own CPU core.
         tcpDataOutputThread->start();
@@ -1107,6 +1243,13 @@ void ControllerInterface::runController()
     int triggerWaitNotify = 0;
     YScaleUsed yScaleUsed;
     while (state->running) {
+        // 安全检查：确保关键对象仍然有效
+        if (!waveformFifo || !usbStreamFifo || !rhxController || !state || !display) {
+            qDebug() << "[SAFETY CHECK] Critical objects became invalid during shutdown, terminating gracefully";
+            emit haveStopped();
+            break;
+        }
+
         workTimer.restart();
 
         if (rhxController->pipeReadError() != 0) {
@@ -1115,6 +1258,11 @@ void ControllerInterface::runController()
         }
 
         if (state->running && waveformFifo->requestReadNewData(WaveformFifo::ReaderDisplay, numSamples)) {
+            // 在处理数据之前再次检查状态，防止对象在处理过程中被释放
+            if (!state || !state->running || !waveformFifo || !display) {
+                qDebug() << "[SAFETY CHECK] Aborting data processing due to invalid state during data processing";
+                break;
+            }
             waveformFifo->copyTimeStamps(WaveformFifo::ReaderDisplay, timeStamps, 0, numSamples);
 
             // Main thread plots data:
@@ -2322,4 +2470,73 @@ void ControllerInterface::uploadStimParameters()
 void ControllerInterface::sendTCPError(QString errorMessage)
 {
     emit TCPErrorMessage(errorMessage);
+}
+
+// 运行时退出保护方法实现
+void ControllerInterface::stopController()
+{
+    qDebug() << "[ControllerInterface] stopController called";
+
+    // 设置运行状态为false
+    if (state) {
+        state->running = false;
+        state->recording = false;
+    }
+
+    qDebug() << "[ControllerInterface] Running state set to false";
+
+    // 停止正在运行的线程
+    if (usbDataThread && usbDataThread->isActive()) {
+        usbDataThread->stopRunning();
+        qDebug() << "[ControllerInterface] USBDataThread stopRunning called";
+    }
+
+    if (waveformProcessorThread && waveformProcessorThread->isActive()) {
+        waveformProcessorThread->stopRunning();
+        qDebug() << "[ControllerInterface] WaveformProcessorThread stopRunning called";
+    }
+
+    if (audioThread && audioThread->isActive()) {
+        audioThread->stopRunning();
+        qDebug() << "[ControllerInterface] AudioThread stopRunning called";
+    }
+
+    if (tcpDataOutputThread && tcpDataOutputThread->isActive()) {
+        tcpDataOutputThread->stopRunning();
+        qDebug() << "[ControllerInterface] TCPDataOutputThread stopRunning called";
+    }
+
+    if (gameThread && gameThread->isActive()) {
+        gameThread->close();
+        qDebug() << "[ControllerInterface] GameThread close called";
+    }
+
+    if (saveToDiskThread && saveToDiskThread->isActive()) {
+        saveToDiskThread->stopRunning();
+        qDebug() << "[ControllerInterface] SaveToDiskThread stopRunning called";
+    }
+
+    qDebug() << "[ControllerInterface] All threads sent stop command";
+}
+
+bool ControllerInterface::isRunning() const
+{
+    if (!state) return false;
+
+    // 检查控制器是否正在运行
+    if (state->running) {
+        return true;
+    }
+
+    // 额外检查线程状态
+    if ((usbDataThread && usbDataThread->isActive()) ||
+        (waveformProcessorThread && waveformProcessorThread->isActive()) ||
+        (audioThread && audioThread->isActive()) ||
+        (tcpDataOutputThread && tcpDataOutputThread->isActive()) ||
+        (gameThread && gameThread->isActive()) ||
+        (saveToDiskThread && saveToDiskThread->isActive())) {
+        return true;
+    }
+
+    return false;
 }

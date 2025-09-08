@@ -32,6 +32,7 @@
 #include <QDebug>
 #include <iostream>
 #include "usbdatathread.h"
+#include "controllerinterface.h"
 
 USBDataThread::USBDataThread(AbstractRHXController* controller_, DataStreamFifo* usbFifo_, QObject *parent) :
     QThread(parent),

@@ -52,6 +52,12 @@
 #include "psthdialog.h"
 #include "spectrogramdialog.h"
 #include "spikesortingdialog.h"
+#include "gamethread.h" // 包含GameThread
+
+// Forward declaration for GameState
+struct GameState;
+
+const int BufferSizeInBlocks = 32;
 
 class AbstractPanel;
 
@@ -82,6 +88,10 @@ public:
     void sweepDisplay(double speed);
     bool rewindPossible() const { return waveformFifo->numWordsInMemory(WaveformFifo::ReaderDisplay) > 0; }
     bool fastForwardPossible() const { return currentSweepPosition < 0; }
+
+    // 运行时退出保护方法
+    void stopController();
+    bool isRunning() const;
 
     void setDisplay(MultiColumnDisplay* display_) { display = display_; }
     void setControlPanel(AbstractPanel* controlPanel_) { controlPanel = controlPanel_; }
@@ -118,6 +128,13 @@ public:
     void setDacEnabled(int dac, bool enabled);
     void setTtlOutMode(bool mode1, bool mode2, bool mode3, bool mode4, bool mode5, bool mode6, bool mode7, bool mode8);
 
+    // 游戏线程控制槽
+    void toggleGameThread(bool enabled);
+    void setGameThresholdMultiplier(double multiplier);
+    void setGameMinThreshold(double minThreshold);
+    void setGameRefractoryPeriod(int samples);
+    void setGameExperimentCondition(int condition);
+
     void enableFastSettle(bool enabled);
     void enableExternalFastSettle(bool enabled);
     void setExternalFastSettleChannel(int channel);
@@ -152,6 +169,7 @@ signals:
     void setHardwareFifoStatus(double percentFull);
     void cpuLoadPercent(double percent);
     void TCPErrorMessage(QString errorMessage);
+    void gameDataUpdated(const GameState& gameState);
 
 public slots:
     void updateFromState();
@@ -163,6 +181,15 @@ public slots:
 private slots:
     void updateHardwareFifo(double percentFull) { emit setHardwareFifoStatus(percentFull); }
     void updateWaveformProcessorCpuLoad(double percentLoad) { waveformProcessorCpuLoad = percentLoad; }
+
+    // 游戏数据更新槽
+    void onGameDataUpdated(const GameState& gameState) { emit gameDataUpdated(gameState); }
+
+    // 游戏刺激处理槽
+    void handleSensoryStim(int zone);
+    void handleHitStim();
+    void handleMissStim();
+    void handleStopAllStim();
 
 private:
     void openController(const QString& boardSerialNumber);
@@ -198,6 +225,7 @@ private:
 
     AudioThread* audioThread;
     SaveToDiskThread* saveToDiskThread;
+    GameThread* gameThread; // GameThread实例
 
     int currentSweepPosition;
 

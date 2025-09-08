@@ -33,6 +33,7 @@
 #include "controlpanelaudioanalogtab.h"
 #include "controlpanelconfiguretab.h"
 #include "controlpaneltriggertab.h"
+#include "controlpanelgametab.h"
 #include "controlwindow.h"
 #include "controlpanel.h"
 
@@ -44,6 +45,7 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
     impedanceTab(nullptr),
     audioAnalogTab(nullptr),
     triggerTab(nullptr),
+    gameTab(nullptr),
     lowSlider(nullptr),
     highSlider(nullptr),
     analogSlider(nullptr),
@@ -56,12 +58,18 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
     hideControlPanelButton = new QToolButton(this);
     hideControlPanelButton->setIcon(QIcon(":/images/hideicon.png"));
     hideControlPanelButton->setToolTip(tr("Hide Control Panel"));
-    connect(hideControlPanelButton, SIGNAL(clicked()), controlWindow, SLOT(hideControlPanel()));
+    connect(hideControlPanelButton, &QToolButton::clicked, controlWindow, &ControlWindow::hideControlPanel);
 
     bandwidthTab = new ControlPanelBandwidthTab(controllerInterface, state, this);
     impedanceTab = new ControlPanelImpedanceTab(controllerInterface, state, parser, this);
     audioAnalogTab = new ControlPanelAudioAnalogTab(controllerInterface, state, this);
     triggerTab = new ControlPanelTriggerTab(controllerInterface, state, this);
+
+    if (state->getControllerTypeEnum() == ControllerStimRecord) {
+        gameTab = new ControlPanelGameTab(controllerInterface, state, parser, this);
+        tabWidget->insertTab(0, gameTab, tr("Game"));
+        connect(gameTab, &ControlPanelGameTab::setGameEnabled, controllerInterface, &ControllerInterface::toggleGameThread);
+    }
 
     tabWidget->addTab(bandwidthTab, tr("BW"));
     tabWidget->addTab(impedanceTab, tr("Impedance"));
@@ -94,6 +102,11 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
     scrollLayout->addWidget(scrollArea);
 
     setLayout(scrollLayout);
+
+    // Connect game data updates from controller to the game tab UI (only if gameTab exists)
+    if (gameTab) {
+        connect(controllerInterface, SIGNAL(gameDataUpdated(GameState)), gameTab, SLOT(updateGameData(GameState)));
+    }
 
     YScaleUsed yScaleUsed;
     updateSlidersEnabled(yScaleUsed);
@@ -159,6 +172,8 @@ void ControlPanel::setCurrentTabName(QString tabName)
         tabWidget->setCurrentWidget(configureTab);
     } else if (tabName == tr("Trigger")) {
         tabWidget->setCurrentWidget(triggerTab);
+    } else if (tabName == tr("Game")) {
+        tabWidget->setCurrentWidget(gameTab);
     } else {
         qDebug() << "Unrecognized tabName.";
     }
@@ -176,6 +191,8 @@ QString ControlPanel::currentTabName() const
         return tr("Config");
     } else if (tabWidget->currentWidget() == triggerTab) {
         return tr("Trigger");
+    } else if (tabWidget->currentWidget() == gameTab) {
+        return tr("Game");
     } else {
         qDebug() << "Unrecognized tab widget.";
     }
@@ -186,10 +203,10 @@ QString ControlPanel::currentTabName() const
 QHBoxLayout* ControlPanel::createSelectionLayout()
 {
     enableCheckBox = new QCheckBox(tr("Enable"), this);
-    connect(enableCheckBox, SIGNAL(clicked()), this, SLOT(enableChannelsSlot()));
+    connect(enableCheckBox, &QCheckBox::clicked, this, &ControlPanel::enableChannelsSlot);
 
     colorAttribute = new ColorWidget(this);
-    connect(colorAttribute, SIGNAL(clicked()), this, SLOT(promptColorChange()));
+    connect(colorAttribute, &ColorWidget::clicked, this, &ControlPanel::promptColorChange);
 
     selectionNameLabel = new QLabel(tr("no selection"), this);
     selectionImpedanceLabel = new QLabel(tr("no selection"), this);
@@ -200,16 +217,16 @@ QHBoxLayout* ControlPanel::createSelectionLayout()
 
     renameButton  = new QPushButton(tr("Rename"), this);
     renameButton->setFixedWidth(renameButton->fontMetrics().horizontalAdvance(renameButton->text()) + 14);
-    connect(renameButton, SIGNAL(clicked()), controlWindow, SLOT(renameChannel()));
+    connect(renameButton, &QPushButton::clicked, controlWindow, &ControlWindow::renameChannel);
 
     setRefButton  = new QPushButton(tr("Set Ref"), this);
     setRefButton->setFixedWidth(setRefButton->fontMetrics().horizontalAdvance(setRefButton->text()) + 14);
-    connect(setRefButton, SIGNAL(clicked()), controlWindow, SLOT(setReference()));
+    connect(setRefButton, &QPushButton::clicked, controlWindow, &ControlWindow::setReference);
 
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
         setStimButton = new QPushButton(tr("Set Stim"), this);
         setStimButton->setFixedWidth(setStimButton->fontMetrics().horizontalAdvance(setStimButton->text()) + 14);
-        connect(setStimButton, SIGNAL(clicked()), this, SLOT(openStimParametersDialog()));
+        connect(setStimButton, &QPushButton::clicked, this, &ControlPanel::openStimParametersDialog);
     }
 
     QGridLayout* selectionGrid = new QGridLayout;
@@ -250,10 +267,10 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
 {
     timeScaleComboBox = new QComboBox(this);
     state->tScale->setupComboBox(timeScaleComboBox);
-    connect(timeScaleComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(changeTimeScale(int)));
+    connect(timeScaleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ControlPanel::changeTimeScale);
 
     clipWaveformsCheckBox = new QCheckBox(tr("Clip Waves"), this);
-    connect(clipWaveformsCheckBox, SIGNAL(checkStateChanged(Qt::CheckState)), this, SLOT(clipWaveforms(Qt::CheckState)));
+    connect(clipWaveformsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(clipWaveforms(Qt::CheckState)));
 
     QVBoxLayout *timeScaleColumn = new QVBoxLayout;
     timeScaleColumn->addWidget(clipWaveformsCheckBox);
@@ -272,7 +289,7 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     wideSlider->setValue(state->yScaleWide->getIndex());
     wideSlider->setTickPosition(QSlider::TicksRight);
 //    wideSlider->setStyleSheet("width: 16px");
-    connect(wideSlider, SIGNAL(valueChanged(int)), this, SLOT(changeWideScale(int)));
+    connect(wideSlider, &QSlider::valueChanged, this, &ControlPanel::changeWideScale);
 
     lowSlider = new QSlider(Qt::Vertical, this);
     lowSlider->setFixedHeight(SliderHeight);
@@ -282,7 +299,7 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     lowSlider->setPageStep(1);
     lowSlider->setValue(state->yScaleLow->getIndex());
     lowSlider->setTickPosition(QSlider::TicksRight);
-    connect(lowSlider, SIGNAL(valueChanged(int)), this, SLOT(changeLowScale(int)));
+    connect(lowSlider, &QSlider::valueChanged, this, &ControlPanel::changeLowScale);
 
     highSlider = new QSlider(Qt::Vertical, this);
     highSlider->setFixedHeight(SliderHeight);
@@ -292,7 +309,7 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     highSlider->setPageStep(1);
     highSlider->setValue(state->yScaleHigh->getIndex());
     highSlider->setTickPosition(QSlider::TicksRight);
-    connect(highSlider, SIGNAL(valueChanged(int)), this, SLOT(changeHighScale(int)));
+    connect(highSlider, &QSlider::valueChanged, this, &ControlPanel::changeHighScale);
 
     variableSlider = new QSlider(Qt::Vertical, this);
     variableSlider->setFixedHeight(SliderHeight);
@@ -300,11 +317,11 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
         variableSlider->setRange(0, state->yScaleDC->numberOfItems() - 1);
         variableSlider->setValue(state->yScaleDC->getIndex());
-        connect(variableSlider, SIGNAL(valueChanged(int)), this, SLOT(changeDCScale(int)));
+        connect(variableSlider, &QSlider::valueChanged, this, &ControlPanel::changeDCScale);
     } else {
         variableSlider->setRange(0, state->yScaleAux->numberOfItems() - 1);
         variableSlider->setValue(state->yScaleAux->getIndex());
-        connect(variableSlider, SIGNAL(valueChanged(int)), this, SLOT(changeAuxScale(int)));
+        connect(variableSlider, &QSlider::valueChanged, this, &ControlPanel::changeAuxScale);
     }
     variableSlider->setInvertedAppearance(true);
     variableSlider->setInvertedControls(true);
@@ -319,7 +336,7 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     analogSlider->setPageStep(1);
     analogSlider->setValue(state->yScaleAnalog->getIndex());
     analogSlider->setTickPosition(QSlider::TicksRight);
-    connect(analogSlider, SIGNAL(valueChanged(int)), this, SLOT(changeAnaScale(int)));
+    connect(analogSlider, &QSlider::valueChanged, this, &ControlPanel::changeAnaScale);
 
     wideLabel = new QLabel(tr("WIDE"), this);
     lowLabel = new QLabel(tr("LOW"), this);
@@ -404,6 +421,7 @@ void ControlPanel::updateFromState()
     audioAnalogTab->updateFromState();
     configureTab->updateFromState();
     triggerTab->updateFromState();
+    gameTab->updateFromState();
 
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
         updateStimTrigger();

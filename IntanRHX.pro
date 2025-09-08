@@ -6,6 +6,11 @@
 
 CONFIG += c++17
 
+# 启用 shadow build (out-of-source build)
+# 这是关键配置，它告诉 qmake 将所有构建产物（包括中间文件）
+# 放在 Makefile 所在的目录（即 build 目录）中。
+CONFIG += shadow
+
 QT += core gui xml multimedia network widgets
 
 TARGET = IntanRHX
@@ -69,6 +74,8 @@ SOURCES += main.cpp \
     Engine/Processing/impedancereader.cpp \
     Engine/Processing/xmlinterface.cpp \
     Engine/Threads/audiothread.cpp \
+    Engine/Threads/gamethread.cpp \
+    Engine/Threads/ponggame.cpp \
     Engine/Threads/savetodiskthread.cpp \
     Engine/Threads/tcpdataoutputthread.cpp \
     Engine/Threads/usbdatathread.cpp \
@@ -137,6 +144,8 @@ SOURCES += main.cpp \
     GUI/Windows/probemapwindow.cpp \
     GUI/Dialogs/impedancefreqdialog.cpp \
     GUI/Widgets/controlpanel.cpp \
+    GUI/Widgets/controlpanelgametab.cpp \
+    GUI/Widgets/ponggamewidget.cpp \
     GUI/Widgets/spectrogramplot.cpp \
     GUI/Windows/viewfilterswindow.cpp
 
@@ -189,6 +198,8 @@ HEADERS += \
     Engine/Processing/impedancereader.h \
     Engine/Processing/xmlinterface.h \
     Engine/Threads/audiothread.h \
+    Engine/Threads/gamethread.h \
+    Engine/Threads/ponggame.h \
     Engine/Threads/savetodiskthread.h \
     Engine/Threads/tcpdataoutputthread.h \
     Engine/Threads/usbdatathread.h \
@@ -257,6 +268,8 @@ HEADERS += \
     GUI/Windows/probemapwindow.h \
     GUI/Dialogs/impedancefreqdialog.h \
     GUI/Widgets/controlpanel.h \
+    GUI/Widgets/controlpanelgametab.h \
+    GUI/Widgets/ponggamewidget.h \
     GUI/Widgets/spectrogramplot.h \
     GUI/Windows/viewfilterswindow.h
 
@@ -306,3 +319,20 @@ unix:!macx: {
     QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\'' # Flag that at runtime, look for shared libraries (like
                                            # libokFrontPanel.so) at the same directory as the binary
 }
+
+# --- 关键修改：指定构建目录 ---
+# 虽然 shadow build 是主要机制，但显式设置输出目录更保险。
+# 指定对象文件（.o）的输出目录
+OBJECTS_DIR = build
+
+# 指定 moc 文件（moc_*.cpp 和 moc_*.o）的输出目录
+MOC_DIR = build
+
+# 指定 rcc 文件（qrc_*.cpp 和 qrc_*.o）的输出目录
+RCC_DIR = build
+
+# 指定 ui 文件（如果有的话，ui_*.h）的输出目录
+UI_DIR = build
+
+# (可选) 指定可执行文件也输出到 build 目录
+# DESTDIR = build

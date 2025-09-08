@@ -47,6 +47,7 @@ class ControlPanelImpedanceTab;
 class ControlPanelAudioAnalogTab;
 class ControlPanelConfigureTab;
 class ControlPanelTriggerTab;
+class ControlPanelGameTab;
 
 class ControlPanel : public AbstractPanel
 {
@@ -81,6 +82,7 @@ private:
     ControlPanelImpedanceTab *impedanceTab;
     ControlPanelAudioAnalogTab *audioAnalogTab;
     ControlPanelTriggerTab *triggerTab;
+    ControlPanelGameTab *gameTab;
 
     QSlider *lowSlider;
     QSlider *highSlider;

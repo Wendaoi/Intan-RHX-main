@@ -34,6 +34,16 @@
 #include "systemstate.h"
 #include "filter.h"
 #include "stimparameters.h"
+#include "ponggame.h" // 包含新的游戏类
+
+// 游戏状态结构，用于UI更新
+struct GameState {
+    int paddle1Y, paddle2Y, ballX, ballY;
+    int paddleHeight; // 球拍高度
+    int bounces; // 当前回合中的反弹次数
+    int rallyCount; // 总回合数
+    float avgRallyLength; // 平均回合长度
+};
 
 // 尖峰检测结果结构
 struct SpikeEvent {
@@ -71,6 +81,8 @@ public:
     void setThresholdMultiplier(float multiplier);
     void setMinThreshold(float minThreshold);
     void setRefractoryPeriod(int samples);
+    void setMotorRegions(const std::vector<QString>& upChannels, const std::vector<QString>& downChannels);
+    void setExperimentCondition(ExperimentCondition condition);
     
     // 刺激控制接口
     void setStimChannelEnabled(const QString& channelName, bool enabled);
@@ -81,6 +93,15 @@ signals:
     // 尖峰检测信号
     void spikeDetected(const SpikeEvent& spike);
     void spikesPerSecondUpdated(const std::map<QString, float>& spikesPerSecond);
+
+    // 游戏信号
+    void gameDataUpdated(const GameState& gameState); // 向UI发送游戏状态
+    
+    // 刺激信号
+    void sendSensoryStim(int zone); // 发送位置刺激
+    void sendHitStim();             // 发送成功拦截的刺激
+    void sendMissStim();            // 发送未成功拦截的刺激
+    void stopAllStim();             // 停止所有刺激 (用于Silent模式)
     
     // 状态信号
     void error(QString message);
@@ -98,6 +119,13 @@ private:
     volatile bool running;
     volatile bool stopThread;
     
+    // 游戏实例
+    PongGame* pongGame;
+
+    // 运动区域通道
+    std::vector<QString> motorRegion1Channels; // Up
+    std::vector<QString> motorRegion2Channels; // Down
+
     // 通道处理器
     std::vector<ChannelProcessor> channelProcessors;
     std::map<QString, int> channelIndexMap;
@@ -125,6 +153,11 @@ private:
     
     // 工具函数
     void updateSpikesPerSecond();
+
+    // 刺激触发函数
+    void triggerHitStimulus();      // 成功拦截的刺激
+    void triggerMissStimulus();     // 未成功拦截的刺激 (Stimulus模式)
+    void triggerSilentStimulus();   // 静默模式下的刺激控制
 };
 
 #endif // GAMETHREAD_H

@@ -1655,11 +1655,114 @@ void ControlWindow::keyReleaseEvent(QKeyEvent *event)
 
 void ControlWindow::closeEvent(QCloseEvent *event)
 {
-    // Perform any clean-up here before application closes.
-    if (state->running)
-        emit sendSetCommand("RunMode", "Stop");
+    // 增强的关闭事件处理，确保游戏运行时退出时的安全性
+    qDebug() << "[ControlWindow] === Window close event triggered ===";
 
+    // Step 1: 立即停止控制器运行状态
+    if (state && state->running) {
+        qDebug() << "[ControlWindow] Stop controller due to window close";
+        state->running = false;
+        state->recording = false;
+
+        // 强制停止各个子线程
+        if (controllerInterface) {
+            try {
+                controllerInterface->stopController();
+            } catch(...) {
+                qDebug() << "[ControlWindow] Exception caught during controller stop";
+            }
+        }
+    }
+
+    // Step 2: 等待一段时间让线程停止
+    // 屏蔽UI输入防止用户干扰退出过程
+    setEnabled(false);
+    qApp->processEvents();
+
+    // Step 3: 等待子系统停止
+    int waitCounter = 0;
+    const int maxWaitLoops = 50; // 最多等待5秒（50 * 100ms）
+
+    while (controllerInterface && waitCounter < maxWaitLoops) {
+        try {
+            // 检查是否有后台线程在运行
+            bool anyThreadsRunning = false;
+
+            if (controllerInterface->isRunning()) {
+                anyThreadsRunning = true;
+            }
+
+            if (!anyThreadsRunning) {
+                break;
+            }
+
+            // 短暂等待然后检查
+            QThread::msleep(100);
+            qApp->processEvents();
+            waitCounter++;
+
+            if (waitCounter % 10 == 0) { // 每秒打印日志
+                qDebug() << "[ControlWindow] Waiting for threads to stop... (" << (waitCounter / 10) << "s)";
+            }
+
+        } catch(...) {
+            qDebug() << "[ControlWindow] Exception during thread checking, continuing with cleanup";
+            break;
+        }
+    }
+
+    // Step 4: 恢复UI状态
+    setEnabled(true);
+
+    if (waitCounter >= maxWaitLoops) {
+        qDebug() << "[ControlWindow] WARNING: Some threads did not stop cleanly within timeout";
+    } else {
+        qDebug() << "[ControlWindow] All threads stopped cleanly";
+    }
+
+    qDebug() << "[ControlWindow] === Window close completed ===";
     event->accept();
+}
+
+// 添加辅助方法检查控制器是否正在运行
+bool ControlWindow::isControllerRunning() const
+{
+    if (!controllerInterface) return false;
+
+    try {
+        return controllerInterface->isRunning();
+    } catch(...) {
+        return false;
+    }
+}
+
+// 强制停止所有控制器活动
+void ControlWindow::forceStopController()
+{
+    if (!state || !controllerInterface) return;
+
+    qDebug() << "[ControlWindow] Force stopping controller";
+
+    try {
+        // 设置状态标志
+        state->running = false;
+        state->recording = false;
+
+        // 强制停止控制器接口
+        controllerInterface->stopController();
+
+        // 等待更长的清理时间
+        for (int i = 0; i < 20; ++i) { // 最多等待2秒
+            if (!isControllerRunning()) break;
+            QThread::msleep(100);
+            qApp->processEvents();
+        }
+
+    } catch(const std::exception& e) {
+        qDebug() << "[ControlWindow] Exception in forceStopController:" << e.what();
+    } catch(...) {
+        qDebug() << "[ControlWindow] Unknown exception in forceStopController";
+    }
 }
 
 bool ControlWindow::loadSettingsFile(QString filename)

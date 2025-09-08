@@ -349,6 +349,9 @@ private:
 
     bool stimParamWarning();
     bool overwriteWarning();
+
+    bool isControllerRunning() const;
+    void forceStopController();
 };
 
 #endif // CONTROLWINDOW_H

@@ -140,7 +140,7 @@ ControlPanelConfigureTab::ControlPanelConfigureTab(ControllerInterface* controll
         connect(liveNotesLineEdit, SIGNAL(returnPressed()), this, SLOT(addLiveNote()));
     }
 
-    QGroupBox *fastSettleGroupBox;
+    QGroupBox *fastSettleGroupBox = nullptr;
     if (state->getControllerTypeEnum() != ControllerStimRecord) {
         if (!state->testMode->getValue()) {
             digOutButton = new QPushButton(tr("Configure"), this);
@@ -217,21 +217,21 @@ void ControlPanelConfigureTab::updateFromState()
     }
 
     bool fastSettleEnabled = state->manualFastSettleEnabled->getValue();
-    if (fastSettleEnabled != fastSettleEnabledOld) {
+    if (fastSettleCheckBox && fastSettleEnabled != fastSettleEnabledOld) {
         fastSettleEnabledOld = fastSettleEnabled;
         fastSettleCheckBox->setChecked(fastSettleEnabled);
         controllerInterface->enableFastSettle(fastSettleEnabled);
     }
 
     bool externalFastSettleEnabled = state->externalFastSettleEnabled->getValue();
-    if (externalFastSettleEnabled != externalFastSettleEnabledOld) {
+    if (externalFastSettleCheckBox && externalFastSettleEnabled != externalFastSettleEnabledOld) {
         externalFastSettleEnabledOld = externalFastSettleEnabled;
         externalFastSettleCheckBox->setChecked(externalFastSettleEnabled);
         controllerInterface->enableExternalFastSettle(externalFastSettleEnabled);
     }
 
     int externalFastSettleChannel = state->externalFastSettleChannel->getValue();
-    if (externalFastSettleChannel != externalFastSettleChannelOld) {
+    if (externalFastSettleSpinBox && externalFastSettleChannel != externalFastSettleChannelOld) {
         externalFastSettleChannelOld = externalFastSettleChannel;
         externalFastSettleSpinBox->setValue(externalFastSettleChannel);
         controllerInterface->setExternalFastSettleChannel(externalFastSettleChannel);
@@ -381,32 +381,32 @@ void ControlPanelConfigureTab::manualCableDelayControl()
         }
         if (spiPort[1]->manualDelayEnabled->getValue()) {
             spiPort[1]->manualDelay->setValue(manualCableDelayDialog.delayPortBSpinBox->value());
-            controllerInterface->setCableDelay(PortA, spiPort[1]->manualDelay->getValue());
+            controllerInterface->setCableDelay(PortB, spiPort[1]->manualDelay->getValue());
         }
         if (spiPort[2]->manualDelayEnabled->getValue()) {
             spiPort[2]->manualDelay->setValue(manualCableDelayDialog.delayPortCSpinBox->value());
-            controllerInterface->setCableDelay(PortA, spiPort[2]->manualDelay->getValue());
+            controllerInterface->setCableDelay(PortC, spiPort[2]->manualDelay->getValue());
         }
         if (spiPort[3]->manualDelayEnabled->getValue()) {
             spiPort[3]->manualDelay->setValue(manualCableDelayDialog.delayPortDSpinBox->value());
-            controllerInterface->setCableDelay(PortA, spiPort[3]->manualDelay->getValue());
+            controllerInterface->setCableDelay(PortD, spiPort[3]->manualDelay->getValue());
         }
         if (NumPorts == 8) {
             if (spiPort[4]->manualDelayEnabled->getValue()) {
                 spiPort[4]->manualDelay->setValue(manualCableDelayDialog.delayPortESpinBox->value());
-                controllerInterface->setCableDelay(PortA, spiPort[4]->manualDelay->getValue());
+                controllerInterface->setCableDelay(PortE, spiPort[4]->manualDelay->getValue());
             }
             if (spiPort[5]->manualDelayEnabled->getValue()) {
                 spiPort[5]->manualDelay->setValue(manualCableDelayDialog.delayPortFSpinBox->value());
-                controllerInterface->setCableDelay(PortA, spiPort[5]->manualDelay->getValue());
+                controllerInterface->setCableDelay(PortF, spiPort[5]->manualDelay->getValue());
             }
             if (spiPort[6]->manualDelayEnabled->getValue()) {
                 spiPort[6]->manualDelay->setValue(manualCableDelayDialog.delayPortGSpinBox->value());
-                controllerInterface->setCableDelay(PortA, spiPort[6]->manualDelay->getValue());
+                controllerInterface->setCableDelay(PortG, spiPort[6]->manualDelay->getValue());
             }
             if (spiPort[7]->manualDelayEnabled->getValue()) {
                 spiPort[7]->manualDelay->setValue(manualCableDelayDialog.delayPortHSpinBox->value());
-                controllerInterface->setCableDelay(PortA, spiPort[7]->manualDelay->getValue());
+                controllerInterface->setCableDelay(PortH, spiPort[7]->manualDelay->getValue());
             }
         }
         // Commands to controller are send in updateFromState()

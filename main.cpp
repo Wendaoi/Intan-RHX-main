@@ -32,10 +32,42 @@
 #include <QDebug>
 #include <QDir>
 #include <QCoreApplication>
+#include <csignal>
 #ifdef __APPLE__
 #include <QStyleFactory>
 #endif
 #include "boardselectdialog.h"
+
+// 全局信号处理变量
+static volatile bool g_isShuttingDown = false;
+
+void signalHandler(int sig) {
+    qDebug() << "[SIGNAL] Received signal:" << sig << "- initiating graceful shutdown";
+    g_isShuttingDown = true;
+
+    // 强制退出当前应用程序
+    QCoreApplication* app = QCoreApplication::instance();
+    if (app) {
+        qDebug() << "[SIGNAL] Calling application quit";
+        app->quit();
+    } else {
+        qDebug() << "[SIGNAL] No application instance found, calling exit";
+        exit(0);
+    }
+}
+
+void setupSignalHandlers() {
+    qDebug() << "[DEBUG MAIN] Setting up signal handlers for graceful shutdown";
+
+    // 为各种终止信号注册处理函数
+    std::signal(SIGTERM, signalHandler);  // 终止信号
+    std::signal(SIGINT, signalHandler);   // 中断信号 (Ctrl+C)
+    std::signal(SIGHUP, signalHandler);   // 挂起信号
+    std::signal(SIGQUIT, signalHandler);  // 退出信号
+    std::signal(SIGKILL, signalHandler);  // 杀死信号 (通常不可接受)
+
+    qDebug() << "[DEBUG MAIN] Signal handlers set up successfully";
+}
 
 int main(int argc, char *argv[])
 {
@@ -57,10 +89,14 @@ int main(int argc, char *argv[])
         app.setStyle(QStyleFactory::create("Fusion"));
 #endif
 
+        qDebug() << "[DEBUG MAIN] Setting up signal handlers for graceful shutdown...";
+        setupSignalHandlers();
+        qDebug() << "[DEBUG MAIN] Signal handlers set up successfully";
+
         qDebug() << "[DEBUG MAIN] About to create BoardSelectDialog...";
         BoardSelectDialog boardSelectDialog;
         qDebug() << "[DEBUG MAIN] BoardSelectDialog created successfully";
-        
+
         qDebug() << "[DEBUG MAIN] Entering main event loop...";
         int result = app.exec();
         qDebug() << "[DEBUG MAIN] Application exited with code:" << result;
