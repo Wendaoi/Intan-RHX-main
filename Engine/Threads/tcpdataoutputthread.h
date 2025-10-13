@@ -77,6 +77,7 @@ private:
     int numDacChannels;
     int numDigitalInChannels;
     int numDigitalOutChannels;
+    int numStimChannels;
 
     uint16_t* previousSample;
 

@@ -88,9 +88,10 @@ class SystemState : public QObject
 {
     Q_OBJECT
 public:
-    SystemState(const AbstractRHXController* controller_, StimStepSize stimStepSize_, int numSPIPorts_, bool expanderConnected_, bool testMode_=false, DataFileReader* dataFileReader_=nullptr);
+    SystemState(const AbstractRHXController* controller_, StimStepSize stimStepSize_, int numSPIPorts_, bool expanderConnected_, bool testMode_=false, DataFileReader* dataFileReader_=nullptr, AcquisitionMode acquisitionMode_ = SyntheticMode);
     ~SystemState();
 
+    AcquisitionMode getAcquisitionMode() const;
     AmplifierSampleRate getSampleRateEnum() const;
     FileFormat getFileFormatEnum() const;
     ControllerType getControllerTypeEnum() const;
@@ -417,6 +418,7 @@ private:
     QElapsedTimer logTimer;
 
     DataFileReader* dataFileReader;
+    AcquisitionMode acquisitionMode;
 };
 
 #endif // SYSTEMSTATE_H

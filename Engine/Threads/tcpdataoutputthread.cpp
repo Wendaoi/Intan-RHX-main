@@ -358,6 +358,7 @@ void TCPDataOutputThread::updateEnabledChannels()
     numDacChannels = 0;
     numDigitalInChannels = 0;
     numDigitalOutChannels = 0;
+    numStimChannels = 0;
 
     for (int i = 0; i < (int) channelNames.size(); ++i) {
         Channel* thisChannel = signalSources->channelByName(QString::fromStdString(channelNames[i]));
@@ -439,6 +440,12 @@ void TCPDataOutputThread::updateEnabledChannels()
                 numDigitalOutChannels += 1;
             }
             break;
+        case StimSignal:
+            if (thisChannel->getOutputToTcp()) {
+                enabledChannelNames.append(thisChannel->getNativeName());
+                numStimChannels += 1;
+            }
+            break;
         }
     }
 
@@ -458,7 +465,7 @@ void TCPDataOutputThread::updateEnabledChannels()
     }
 
     // Each frame has 4 bytes for timestamp, then 2 bytes per uint16 word.
-    numBytesPerFrame = 4 + 2 * (totalEnabledBands + numAuxChannels + numVddChannels + numAdcChannels + numDacChannels + digInWordPresent + digOutWordPresent);
+    numBytesPerFrame = 4 + 2 * (totalEnabledBands + numAuxChannels + numVddChannels + numAdcChannels + numDacChannels + numStimChannels + digInWordPresent + digOutWordPresent);
     // Each data block has 4 bytes for magic number, then 128 frames
     numBytesPerDataBlock = 4 + (FramesPerBlock * numBytesPerFrame);
 

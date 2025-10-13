@@ -208,6 +208,7 @@ void WaveformProcessorThread::run()
 
                     // Done reading and processing all waveforms.
                     waveformFifo->commitNewData();  // Commit waveform data we have just written.
+                    waveformFifo->dataForGameThread.release(); // Signal to GameThread that data is ready.
                     usbFifo->freeData();  // Free raw data we just read from the USB buffer.
 
                     firstTime = false;
@@ -231,7 +232,7 @@ void WaveformProcessorThread::run()
 
                         emit cpuLoadPercent(averageCpuLoad);
 
-//                        cout << "                   WaveformProcessorThread CPU usage: " << (int) averageCpuLoad << "%" << EndOfLine;
+                        //                        cout << "                   WaveformProcessorThread CPU usage: " << (int) averageCpuLoad << "%" << EndOfLine;
 //                        cout << "USB FIFO " << (int) usbFifo->percentFull() << "% full.  ";
 //                        cout << "Waveform FIFO " << (int) waveformFifo->percentFull() << "% full." << EndOfLine;
                         reportTimer.restart();

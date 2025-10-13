@@ -31,9 +31,12 @@
 #ifndef RHXGLOBALS_H
 #define RHXGLOBALS_H
 
-#define USE_QT // Comment out to compile without using Qt
-
 #include <cstdint>
+
+// Globally accessible enum for acquisition mode
+enum AcquisitionMode { LiveMode, HardwareMode, SyntheticMode, PlaybackMode, LearningMode };
+
+#define USE_QT // Comment out to compile without using Qt
 
 #define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 
@@ -58,7 +61,8 @@ enum DemoSelections {
     DemoUSBInterfaceBoard,
     DemoRecordingController,
     DemoStimRecordController,
-    DemoPlayback
+    DemoPlayback,
+    DemoLearning
 };
 
 enum AmplifierSampleRate {
@@ -152,7 +156,8 @@ enum SignalType {
     BoardAdcSignal = 3,
     BoardDacSignal = 4,
     BoardDigitalInSignal = 5,
-    BoardDigitalOutSignal = 6
+    BoardDigitalOutSignal = 6,
+    StimSignal = 7
 };
 
 enum FileFormat {

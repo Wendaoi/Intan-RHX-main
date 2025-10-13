@@ -31,18 +31,15 @@
 #ifndef ABSTRACTRHXCONTROLLER_H
 #define ABSTRACTRHXCONTROLLER_H
 
-#include "rhxglobals.h"
-#include "rhxdatablock.h"
-#include <string>
 #include <vector>
+#include <string>
 #include <deque>
 #include <mutex>
+#include "rhxglobals.h"
+#include "Engine/Threads/abstractgamecontroller.h" // Added for PaddleAction
 
-enum AcquisitionMode {
-    LiveMode,
-    SyntheticMode,
-    PlaybackMode
-};
+
+class RHXDataBlock;
 
 struct StreamChannelPair
 {
@@ -209,6 +206,7 @@ public:
     virtual void resetSequencers() = 0;
     virtual void programStimReg(int stream, int channel, StimRegister reg, int value) = 0;
     virtual void uploadCommandList(const std::vector<unsigned int> &commandList, AuxCmdSlot auxCommandSlot, int bank) = 0;
+    virtual void modulateSpikes(PaddleAction action) {}
 
     virtual int findConnectedChips(std::vector<ChipType> &chipType, std::vector<int> &portIndex, std::vector<int> &commandStream,
                                    std::vector<int> &numChannelsOnPort, bool synthMaxChannels = false, bool returnToFastSettle = false,
@@ -252,4 +250,4 @@ private:
     static bool approximatelyEqual(double a, double b, double percentTolerance);
 };
 
-#endif // ABSTRACTRHXCONTROLLER_H
+#endif // ABSTRACTRHXCONTROL

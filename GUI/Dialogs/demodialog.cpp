@@ -87,12 +87,30 @@ DemoDialog::DemoDialog(DemoSelections *demoSelection_, bool &useOpenCL_, uint8_t
     setLayout(mainLayout);
 }
 
-void DemoDialog::closeEvent(QCloseEvent *)
+DemoDialog::~DemoDialog()
 {
-    exit(EXIT_FAILURE);
 }
 
-void DemoDialog::usbInterface()
+void DemoDialog::addLearningModeButton()
+{
+    learningModeButton = new QPushButton(tr("AI Learning Demo"), this);
+    connect(learningModeButton, SIGNAL(clicked()), this, SLOT(learningModeDemo()));
+
+    // Add the button to the main layout
+    QVBoxLayout *mainLayout = qobject_cast<QVBoxLayout*>(layout());
+    if (mainLayout) {
+        mainLayout->insertWidget(mainLayout->count() - 1, learningModeButton);
+        mainLayout->setAlignment(learningModeButton, Qt::AlignHCenter);
+    }
+}
+
+void DemoDialog::learningModeDemo()
+{
+    *demoSelection = DemoLearning;
+    accept();
+}
+
+void DemoDialog::usbInterfaceBoardDemo()
 {
     *demoSelection = DemoUSBInterfaceBoard;
     accept();

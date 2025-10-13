@@ -88,6 +88,13 @@ void NeuralSynthSource::reset()
     }
 }
 
+void NeuralSynthSource::setSpikeRate(double rateHz)
+{
+    for (int i = 0; i < nUnits; ++i) {
+        spikeRateHz[i] = rateHz;
+    }
+}
+
 double NeuralSynthSource::nextSpikeVoltage(int unit)
 {
     double result = 0.0;
@@ -237,7 +244,13 @@ SynthDataBlockGenerator::SynthDataBlockGenerator(ControllerType type_, double sa
         synthSources[stream].resize(RHXDataBlock::channelsPerStream(type));
         for (int channel = 0; channel < RHXDataBlock::channelsPerStream(type); ++channel) {
             if (sampleRate > 4999.9) {
-                synthSources[stream][channel] = new NeuralSynthSource(randomGenerator, sampleRate, 2);
+                // Channels 0-15 (for paddle up) will generate neural signals
+                if (channel >= 0 && channel <= 15) {
+                    synthSources[stream][channel] = new NeuralSynthSource(randomGenerator, sampleRate, 2);
+                // Channels 16-31 (for paddle down) will also generate neural signals
+                } else {
+                    synthSources[stream][channel] = new NeuralSynthSource(randomGenerator, sampleRate, 2);
+                }
             } else {
                 synthSources[stream][channel] = new ECGSynthSource(randomGenerator, sampleRate);
             }
@@ -324,6 +337,41 @@ long SynthDataBlockGenerator::readSynthDataBlocksRaw(int numBlocks, uint8_t* buf
     return BytesPerWord * numWords;
 }
 
+void SynthDataBlockGenerator::modulateSpikes(PaddleAction action)
+{
+    const double HIGH_SPIKE_RATE = 50.0;
+    const double LOW_SPIKE_RATE = 1.0;
+    const double BASELINE_SPIKE_RATE = 10.0;
+
+    for (unsigned int stream = 0; stream < synthSources.size(); ++stream) {
+        for (int channel = 0; channel < RHXDataBlock::channelsPerStream(type); ++channel) {
+            NeuralSynthSource* neuralSource = dynamic_cast<NeuralSynthSource*>(synthSources[stream][channel]);
+            if (!neuralSource) continue;
+
+            // Channels 0-15 are for moving up
+            if (channel >= 0 && channel <= 15) {
+                if (action == PaddleAction::MoveUp) {
+                    neuralSource->setSpikeRate(HIGH_SPIKE_RATE);
+                } else if (action == PaddleAction::MoveDown) {
+                    neuralSource->setSpikeRate(LOW_SPIKE_RATE);
+                } else { // Stay
+                    neuralSource->setSpikeRate(BASELINE_SPIKE_RATE);
+                }
+            }
+            // Channels 16-31 are for moving down
+            else if (channel >= 16 && channel <= 31) {
+                if (action == PaddleAction::MoveDown) {
+                    neuralSource->setSpikeRate(HIGH_SPIKE_RATE);
+                } else if (action == PaddleAction::MoveUp) {
+                    neuralSource->setSpikeRate(LOW_SPIKE_RATE);
+                } else { // Stay
+                    neuralSource->setSpikeRate(BASELINE_SPIKE_RATE);
+                }
+            }
+        }
+    }
+}
+
 void SynthDataBlockGenerator::createSynthDataBlock(int numBlocks, int numDataStreams)
 {
     uint16_t* pWrite = usbWords;
@@ -370,11 +418,10 @@ void SynthDataBlockGenerator::createSynthDataBlock(int numBlocks, int numDataStr
                         pWrite++;
                     }
                 }
-                // Write amplifier data (same for all streams to save CPU time).
+                // Write amplifier data for each stream.
                 for (int channel = 0; channel < RHXDataBlock::channelsPerStream(type); ++channel) {
-                    uint16_t value = synthSources[0][channel]->nextSample();
                     for (int stream = 0; stream < numDataStreams; ++stream) {
-                        *pWrite = value;
+                        *pWrite = synthSources[stream][channel]->nextSample();
                         pWrite++;
                     }
                 }
@@ -388,12 +435,13 @@ void SynthDataBlockGenerator::createSynthDataBlock(int numBlocks, int numDataStr
                         pWrite += 2;
                     }
                 }
-                // Write amplifier data (same for all streams to save CPU time).
+                // Write amplifier data.
                 for (int channel = 0; channel < RHXDataBlock::channelsPerStream(type); ++channel) {
-                    uint16_t value = synthSources[0][channel]->nextSample();
                     for (int stream = 0; stream < numDataStreams; ++stream) {
-                        pWrite[0] = (uint16_t) dcAmpSample;   // DC amplifier result; same on all channels here
-                        pWrite[1] = value; // AC amplifier result
+                        // In learning mode, write the modulated AC signal to the DC slot for GameThread to process.
+                        uint16_t sampleValue = synthSources[stream][channel]->nextSample();
+                        pWrite[0] = sampleValue; // DC amplifier result
+                        pWrite[1] = sampleValue; // AC amplifier result
                         pWrite += 2;
                     }
                 }

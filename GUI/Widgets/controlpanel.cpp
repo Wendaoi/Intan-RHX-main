@@ -33,7 +33,6 @@
 #include "controlpanelaudioanalogtab.h"
 #include "controlpanelconfiguretab.h"
 #include "controlpaneltriggertab.h"
-#include "controlpanelgametab.h"
 #include "controlwindow.h"
 #include "controlpanel.h"
 
@@ -45,7 +44,6 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
     impedanceTab(nullptr),
     audioAnalogTab(nullptr),
     triggerTab(nullptr),
-    gameTab(nullptr),
     lowSlider(nullptr),
     highSlider(nullptr),
     analogSlider(nullptr),
@@ -63,14 +61,10 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
     bandwidthTab = new ControlPanelBandwidthTab(controllerInterface, state, this);
     impedanceTab = new ControlPanelImpedanceTab(controllerInterface, state, parser, this);
     audioAnalogTab = new ControlPanelAudioAnalogTab(controllerInterface, state, this);
+    configureTab = new ControlPanelConfigureTab(controllerInterface, state, parser, this);
     triggerTab = new ControlPanelTriggerTab(controllerInterface, state, this);
 
-    if (state->getControllerTypeEnum() == ControllerStimRecord) {
-        gameTab = new ControlPanelGameTab(controllerInterface, state, parser, this);
-        tabWidget->insertTab(0, gameTab, tr("Game"));
-        connect(gameTab, &ControlPanelGameTab::setGameEnabled, controllerInterface, &ControllerInterface::toggleGameThread);
-    }
-
+    tabWidget = new QTabWidget(this);
     tabWidget->addTab(bandwidthTab, tr("BW"));
     tabWidget->addTab(impedanceTab, tr("Impedance"));
     tabWidget->addTab(audioAnalogTab, tr("Audio/Analog"));
@@ -103,10 +97,7 @@ ControlPanel::ControlPanel(ControllerInterface *controllerInterface_, SystemStat
 
     setLayout(scrollLayout);
 
-    // Connect game data updates from controller to the game tab UI (only if gameTab exists)
-    if (gameTab) {
-        connect(controllerInterface, SIGNAL(gameDataUpdated(GameState)), gameTab, SLOT(updateGameData(GameState)));
-    }
+
 
     YScaleUsed yScaleUsed;
     updateSlidersEnabled(yScaleUsed);
@@ -172,8 +163,7 @@ void ControlPanel::setCurrentTabName(QString tabName)
         tabWidget->setCurrentWidget(configureTab);
     } else if (tabName == tr("Trigger")) {
         tabWidget->setCurrentWidget(triggerTab);
-    } else if (tabName == tr("Game")) {
-        tabWidget->setCurrentWidget(gameTab);
+
     } else {
         qDebug() << "Unrecognized tabName.";
     }
@@ -191,8 +181,7 @@ QString ControlPanel::currentTabName() const
         return tr("Config");
     } else if (tabWidget->currentWidget() == triggerTab) {
         return tr("Trigger");
-    } else if (tabWidget->currentWidget() == gameTab) {
-        return tr("Game");
+
     } else {
         qDebug() << "Unrecognized tab widget.";
     }
@@ -270,7 +259,7 @@ QHBoxLayout* ControlPanel::createDisplayLayout()
     connect(timeScaleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &ControlPanel::changeTimeScale);
 
     clipWaveformsCheckBox = new QCheckBox(tr("Clip Waves"), this);
-    connect(clipWaveformsCheckBox, SIGNAL(stateChanged(int)), this, SLOT(clipWaveforms(Qt::CheckState)));
+    connect(clipWaveformsCheckBox, &QCheckBox::stateChanged, this, &ControlPanel::clipWaveforms);
 
     QVBoxLayout *timeScaleColumn = new QVBoxLayout;
     timeScaleColumn->addWidget(clipWaveformsCheckBox);
@@ -421,7 +410,6 @@ void ControlPanel::updateFromState()
     audioAnalogTab->updateFromState();
     configureTab->updateFromState();
     triggerTab->updateFromState();
-    gameTab->updateFromState();
 
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
         updateStimTrigger();
@@ -442,4 +430,11 @@ void ControlPanel::updateYScales()
     }
 
     analogSlider->setValue(state->yScaleAnalog->getIndex());
+}
+
+void ControlPanel::insertTab(int index, QWidget *widget, const QString &label)
+{
+    if (tabWidget) {
+        tabWidget->insertTab(index, widget, label);
+    }
 }

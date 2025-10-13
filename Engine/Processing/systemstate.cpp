@@ -48,14 +48,16 @@ bool RestrictIfStimControllerOrRunning(const SystemState* state)
     { return (ControllerType) state->controllerType->getIndex() == ControllerStimRecord || state->running; }
 
 SystemState::SystemState(const AbstractRHXController* controller_, StimStepSize stimStepSize_, int numSPIPorts_,
-                         bool expanderConnected_, bool testMode_, DataFileReader* dataFileReader_) :
+                         bool expanderConnected_, bool testMode_, DataFileReader* dataFileReader_,
+                         AcquisitionMode acquisitionMode_) :
     numSPIPorts(numSPIPorts_),
     logErrors(false),
     reportSpikes(false),
     decayTime(1.0),
     lastTimestamp(0),
     globalSettingsInterface(nullptr),
-    dataFileReader(dataFileReader_)
+    dataFileReader(dataFileReader_),
+    acquisitionMode(acquisitionMode_)
 {
     setupLog();
 
@@ -814,6 +816,11 @@ SystemState::~SystemState()
     for (FilenameItemList::const_iterator p = stateFilenameItems.begin(); p != stateFilenameItems.end(); ++p) {
         delete p->second;
     }
+}
+
+AcquisitionMode SystemState::getAcquisitionMode() const
+{
+    return acquisitionMode;
 }
 
 AmplifierSampleRate SystemState::getSampleRateEnum() const

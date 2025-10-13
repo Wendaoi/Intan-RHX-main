@@ -352,3 +352,10 @@ unsigned int SyntheticRHXController::numWordsInFifo()
     numWordsHasBeenUpdated = true;
     return lastNumWordsInFifo;
 }
+
+void SyntheticRHXController::modulateSpikes(PaddleAction action)
+{
+    if (dataGenerator) {
+        dataGenerator->modulateSpikes(action);
+    }
+}

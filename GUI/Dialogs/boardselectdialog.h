@@ -32,30 +32,31 @@
 #define BOARDSELECTDIALOG_H
 
 #include <QDialog>
+#include <QVector>
+#include <QTableWidget>
+#include <QPushButton>
+#include <QCheckBox>
+#include <QSplashScreen>
+#include <QStyle>
+#include <QIcon>
+#include <QString>
 
-#include "demodialog.h"
-#include "startupdialog.h"
+// Include the necessary headers for custom types
 #include "rhxcontroller.h"
-#include "syntheticrhxcontroller.h"
-#include "playbackrhxcontroller.h"
 #include "rhxglobals.h"
-#include "controlwindow.h"
-#include "controllerinterface.h"
 #include "systemstate.h"
+#include "controllerinterface.h"
 #include "commandparser.h"
+#include "controlwindow.h"
+#include "startupdialog.h"
+#include "demodialog.h"
+#include "Engine/API/Synthetic/syntheticrhxcontroller.h"
+#include "Engine/API/Synthetic/playbackrhxcontroller.h"
 
-const QString RHDBoardString = "RHD USB Interface Board";
-const QString RHD512chString = "RHD 512ch Recording Controller";
-const QString RHD1024chString = "RHD 1024ch Recording Controller";
-const QString RHS128chString = "RHS 128ch Stim/Recording Controller";
-const QString CLAMP2chString = "2ch CLAMP Controller";
-const QString CLAMP8chString = "8ch CLAMP Controller";
-const QString UnknownUSB2String = "Unknown USB2 Device";
-const QString UnknownUSB3String = "Unknown USB3 Device";
-const QString UnknownString = "Unknown Device";
-const QString RHS128ch_7310String = "RHS 128ch Stim/Recording Controller (7310)";
-const QString RHD512ch_7310String = "RHD 512ch Recording Controller (7310)";
-const QString RHD1024ch_7310String = "RHD 1024ch Recording Controller (7310)";
+// Forward declarations for custom classes
+class BoardIdentifier;
+class DataFileReader;
+class AbstractRHXController;
 
 enum UsbVersion {
     USB2,
@@ -63,44 +64,41 @@ enum UsbVersion {
     USB3_7310
 };
 
+// Structure for controller information
 struct ControllerInfo {
     QString serialNumber;
     UsbVersion usbVersion;
-    bool expConnected;
-    int numSPIPorts;
     BoardMode boardMode;
+    int numSPIPorts;
+    bool expConnected;
 };
 
-class BoardIdentifier
+class BoardIdentifier : public QObject
 {
 public:
-    BoardIdentifier(QWidget* parent_);
+    BoardIdentifier(QWidget *parent_);
     ~BoardIdentifier();
 
+    QVector<ControllerInfo*> getConnectedControllersInfo();
     static QString getBoardTypeString(BoardMode mode, int numSpiPorts);
     static QIcon getIcon(const QString& boardType, QStyle *style, int size);
 
-    QVector<ControllerInfo*> getConnectedControllersInfo();
-
 private:
-    void identifyController(ControllerInfo* controller, int index);
+    void identifyController(ControllerInfo *controller, int index);
     QString opalKellyModelName(int model) const;
     bool uploadFpgaBitfileQMessageBox(const QString& filename);
 
+    okCFrontPanel *dev;
     QVector<ControllerInfo*> controllers;
     QWidget *parent;
-
-    okCFrontPanel *dev;
 };
-
-class QPushButton;
-class QTableWidget;
 
 class BoardSelectDialog : public QDialog
 {
     Q_OBJECT
+
 public:
-    BoardSelectDialog(QWidget *parent = nullptr);
+    explicit BoardSelectDialog(QWidget *parent = nullptr);
     ~BoardSelectDialog();
 
     static bool validControllersPresent(QVector<ControllerInfo*> cInfo);
@@ -115,34 +113,34 @@ private slots:
 private:
     void populateTable();
     QSize calculateTableSize();
-
     void showDemoMessageBox();
     void startSoftware(ControllerType controllerType, AmplifierSampleRate sampleRate, StimStepSize stimStepSize,
-                       int numSPIPorts, bool expanderConnected, const QString& boardSerialNumber, AcquisitionMode mode, bool is7310, DataFileReader* dataFileReader=nullptr);
+                       int numSPIPorts, bool expanderConnected, const QString& boardSerialNumber, 
+                       AcquisitionMode mode, bool is7310, DataFileReader* dataFileReader = nullptr);
 
     QTableWidget *boardTable;
     QPushButton *openButton;
     QPushButton *playbackButton;
     QPushButton *advancedButton;
-
+    
     QCheckBox *defaultSampleRateCheckBox;
     QCheckBox *defaultSettingsFileCheckBox;
-
+    
     QSplashScreen* splash;
     QString splashMessage;
-    int splashMessageAlign;
+    Qt::Alignment splashMessageAlign;
     QColor splashMessageColor;
-
+    
     BoardIdentifier *boardIdentifier;
     QVector<ControllerInfo*> controllersInfo;
     DataFileReader *dataFileReader;
-
+    
     AbstractRHXController *rhxController;
     SystemState *state;
     ControllerInterface *controllerInterface;
     CommandParser *parser;
     ControlWindow *controlWindow;
-
+    
     bool useOpenCL;
     uint8_t playbackPorts;
 };

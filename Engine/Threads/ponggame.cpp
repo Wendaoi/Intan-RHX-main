@@ -7,8 +7,9 @@ PongGame::PongGame() {
     gameWidth = 640;
     gameHeight = 480;
     paddleWidth = 0;
-    paddleHeight = 320;
+    paddleHeight = 60;  // 修改为更短的长度，便于游戏挑战
     ballSize = 0; // 球无体积，作为点处理
+    paddleSpeed = 20.0f;    // Increased paddle speed
     currentCondition = ExperimentCondition::Stimulus;
     resetBall(true);
     bounces_in_rally = 0;
@@ -19,38 +20,47 @@ void PongGame::resetBall(bool randomVector) {
     ballX = static_cast<float>(gameWidth);  // 球点从右侧边界出发
     ballY = static_cast<float>(gameHeight) / 2.0f;
     if (randomVector) {
-        ballSpeedX = (rand() % 2 == 0) ? -8.0f : -6.0f;  // 向左运动
-        ballSpeedY = static_cast<float>((rand() % 10) - 5);
-        
+        ballSpeedX = (rand() % 2 == 0) ? -4.0f : -3.0f;  // Halved horizontal speed
+        int speedY = (rand() % 3) + 1; // Halved vertical speed range
+        if (rand() % 2 == 0) {
+            speedY = -speedY;
+        }
+        ballSpeedY = static_cast<float>(speedY);
+
     } else {
-        ballSpeedX = -7.0f;  // 向左运动，固定速度
-        ballSpeedY = 3.0f;   // 增加Y方向速度
+        ballSpeedX = -3.5f;  // Halved horizontal speed
+        ballSpeedY = 1.5f;   // Halved vertical speed
     }
 }
 
 void PongGame::setCondition(ExperimentCondition condition) {
+    std::unique_lock<std::shared_mutex> lock(gameMutex);
     currentCondition = condition;
 }
 
 ExperimentCondition PongGame::getCondition() const {
+    std::shared_lock<std::shared_mutex> lock(gameMutex);
     return currentCondition;
 }
 
-GameEvent PongGame::update(int spikesUp, int spikesDown) {
-    // 1. 根据尖峰更新玩家球拍位置
-    int paddleSpeed = 5;
-    if (spikesUp > spikesDown) {
-        paddleY -= paddleSpeed;
-    } else if (spikesDown > spikesUp) {
-        paddleY += paddleSpeed;
+GameEvent PongGame::update(int paddle1_movement)
+{
+    std::unique_lock<std::shared_mutex> lock(gameMutex);
+    // Update paddle position based on the movement command
+    paddleY += paddle1_movement * paddleSpeed;
+
+    // Keep paddle on screen
+    if (paddleY < 0) {
+        paddleY = 0;
+    } else if (paddleY > gameHeight - paddleHeight) {
+        paddleY = gameHeight - paddleHeight;
     }
-    paddleY = std::max(0, std::min(paddleY, gameHeight - paddleHeight));
 
-    // 2. 使用增量的方式逐步更新球位置，处理碰撞
-    GameEvent event = updateBallPosition();
-
-    return event;
+    return updateBallPosition();
 }
+
+// 注意：updateBallPosition() 是私有的内部函数，会被update()调用，
+// 由于update()已经获取了锁，所以不需要重复锁定
 
 GameEvent PongGame::updateBallPosition() {
     // 球作为点处理，简化解算
@@ -63,8 +73,8 @@ GameEvent PongGame::updateBallPosition() {
         // 球拍碰撞，反弹（简化逻辑，与边界反弹一致）
         ballSpeedX = -ballSpeedX;
 
-        // 更新位置（反弹后立即反向移动一步，以避免立即再次碰撞）
-        ballX = - newBallX; 
+        // 更新位置（反弹后将球点重置到球拍表面，以避免立即再次碰撞）
+        ballX = 0.0f; 
         ballY = newBallY;
 
         return GameEvent::BallHitPlayerPaddle;
@@ -76,7 +86,6 @@ GameEvent PongGame::updateBallPosition() {
             ballSpeedX = -ballSpeedX; // 反弹，但实际是重置
 
             if (currentCondition != ExperimentCondition::NoFeedback) {
-                bounces_in_rally = 0;
                 resetBall(true);
             }
             return GameEvent::PlayerMissed;
@@ -91,7 +100,7 @@ GameEvent PongGame::updateBallPosition() {
         }
     }
 
-    // 2.2 处理Y轴边界碰撞
+    // 2.2 Y轴边界碰撞检测与位置更新（必须在X轴处理之后独立进行）
     if (newBallY <= 0.0f) {
         // 球点碰到上边界，反弹
         ballY = 0.0f;
@@ -101,7 +110,7 @@ GameEvent PongGame::updateBallPosition() {
         ballY = static_cast<float>(gameHeight);
         ballSpeedY = -ballSpeedY;
     } else {
-        // 正常移动
+        // 正常Y轴移动
         ballY = newBallY;
     }
 
@@ -130,6 +139,7 @@ bool PongGame::checkPaddleCollision(float newBallX, float newBallY) {
 }
 
 int PongGame::getSensoryStimZone() const {
+    std::shared_lock<std::shared_mutex> lock(gameMutex);
     if (currentCondition == ExperimentCondition::Rest) {
         return -1; // Rest条件下无感觉输入
     }
@@ -154,4 +164,9 @@ int PongGame::getSensoryStimZone() const {
     if (offsetY > 7) offsetY = 7;
 
     return offsetY;
+}
+
+void PongGame::resetBounces() {
+    std::unique_lock<std::shared_mutex> lock(gameMutex);
+    bounces_in_rally = 0;
 }

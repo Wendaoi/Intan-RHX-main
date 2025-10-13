@@ -31,6 +31,7 @@
 #ifndef PLAYBACKRHXCONTROLLER_H
 #define PLAYBACKRHXCONTROLLER_H
 
+#include "Engine/API/Hardware/rhxglobals.h"
 #include "datafilereader.h"
 #include "abstractrhxcontroller.h"
 

@@ -31,8 +31,10 @@
 #ifndef SYNTHETICRHXCONTROLLER_H
 #define SYNTHETICRHXCONTROLLER_H
 
+#include "Engine/API/Hardware/rhxglobals.h"
 #include "synthdatablockgenerator.h"
 #include "abstractrhxcontroller.h"
+#include "Engine/Threads/abstractgamecontroller.h" // Added for PaddleAction
 
 class SyntheticRHXController : public AbstractRHXController
 {
@@ -105,6 +107,7 @@ public:
     void resetSequencers() override {}
     void programStimReg(int, int, StimRegister, int) override {}
     void uploadCommandList(const std::vector<unsigned int>&, AuxCmdSlot, int) override {}
+    void modulateSpikes(PaddleAction action) override;
 
     int findConnectedChips(std::vector<ChipType> &chipType, std::vector<int> &portIndex, std::vector<int> &commandStream,
                            std::vector<int> &numChannelsOnPort, bool synthMaxChannels = false, bool returnToFastSettle = false,

@@ -36,6 +36,7 @@
 #include <map>
 #include <vector>
 #include <mutex>
+#include <QSemaphore>
 #include "semaphore.h"
 #include "minmax.h"
 #include "signalsources.h"
@@ -242,6 +243,10 @@ public:
     void updateForRescan();
 
     bool memoryWasAllocated(double& memoryRequestedGB) const { memoryRequestedGB += memoryNeededGB; return memoryAllocated; }
+
+    QSemaphore dataForGameThread;
+
+    QSemaphore dataAvailableSemaphore;
 
 private:
     SystemState *state;

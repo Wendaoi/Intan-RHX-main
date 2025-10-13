@@ -147,7 +147,8 @@ SOURCES += main.cpp \
     GUI/Widgets/controlpanelgametab.cpp \
     GUI/Widgets/ponggamewidget.cpp \
     GUI/Widgets/spectrogramplot.cpp \
-    GUI/Windows/viewfilterswindow.cpp
+    GUI/Windows/viewfilterswindow.cpp \
+    Engine/Threads/qlearningagent.cpp
 
 
 HEADERS += \
@@ -271,7 +272,8 @@ HEADERS += \
     GUI/Widgets/controlpanelgametab.h \
     GUI/Widgets/ponggamewidget.h \
     GUI/Widgets/spectrogramplot.h \
-    GUI/Windows/viewfilterswindow.h
+    GUI/Windows/viewfilterswindow.h \
+    Engine/Threads/qlearningagent.h
 
 RESOURCES += \
     IntanRHX.qrc

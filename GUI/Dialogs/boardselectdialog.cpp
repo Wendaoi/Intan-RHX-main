@@ -34,6 +34,19 @@
 #include "scrollablemessageboxdialog.h"
 #include "advancedstartupdialog.h"
 
+const QString RHDBoardString = "RHD USB Interface Board";
+const QString RHS128chString = "RHS 128-ch Stim/Record Controller";
+const QString RHD512chString = "RHD 512-ch Recording Controller";
+const QString RHD1024chString = "RHD 1024-ch Recording Controller";
+const QString CLAMP2chString = "Intan Clamp-2";
+const QString CLAMP8chString = "Intan Clamp-8";
+const QString UnknownUSB2String = "Unknown USB2 Opal Kelly Device";
+const QString UnknownUSB3String = "Unknown USB3 Opal Kelly Device";
+const QString RHS128ch_7310String = "RHS 128-ch Stim/Record Controller";
+const QString RHD512ch_7310String = "RHD 512-ch Recording Controller";
+const QString RHD1024ch_7310String = "RHD 1024-ch Recording Controller";
+const QString UnknownString = "Unknown Board";
+
 // Check if FrontPanel DLL is loaded, and create an instance of okCFrontPanel.
 BoardIdentifier::BoardIdentifier(QWidget *parent_) :
     parent(parent_)
@@ -635,16 +648,25 @@ bool BoardSelectDialog::validControllersPresent(QVector<ControllerInfo*> cInfo)
 
 void BoardSelectDialog::showDemoMessageBox()
 {
-    AmplifierSampleRate sampleRate = SampleRate20000Hz;
+    AmplifierSampleRate sampleRate = SampleRate30000Hz; // Use 30kHz for learning demo
     StimStepSize stimStepSize = StimStepSize500nA;
     bool rememberSettings = false;
 
     DemoSelections demoSelection;
     DemoDialog demoDialog(&demoSelection, useOpenCL, playbackPorts, this);
+    demoDialog.addLearningModeButton(); // Add our new button to the dialog
     demoDialog.exec();
 
     if (demoSelection == DemoPlayback) {
         playbackDataFile();
+    } else if (demoSelection == DemoLearning) { // Handle the new mode
+        ControllerType controllerType = ControllerStimRecord;
+        splash->show();
+        splash->showMessage(splashMessage, splashMessageAlign, splashMessageColor);
+        startSoftware(controllerType, sampleRate, stimStepSize, 4, true, "N/A",
+                      LearningMode, false);
+        splash->finish(controlWindow);
+        accept();
     } else {
         ControllerType controllerType;
         if (demoSelection == DemoUSBInterfaceBoard) {
@@ -766,7 +788,7 @@ void BoardSelectDialog::startSoftware(ControllerType controllerType, AmplifierSa
 {
     if (mode == LiveMode) {
         rhxController = new RHXController(controllerType, sampleRate, is7310);
-    } else if (mode == SyntheticMode) {
+    } else if (mode == SyntheticMode || mode == LearningMode) { // Handle LearningMode here
         rhxController = new SyntheticRHXController(controllerType, sampleRate);
     } else if (mode == PlaybackMode) {
         rhxController = new PlaybackRHXController(controllerType, sampleRate, dataFileReader);
@@ -780,7 +802,7 @@ void BoardSelectDialog::startSoftware(ControllerType controllerType, AmplifierSa
         testMode = true;
     }
 
-    state = new SystemState(rhxController, stimStepSize, numSPIPorts, expanderConnected, testMode, dataFileReader);
+    state = new SystemState(rhxController, stimStepSize, numSPIPorts, expanderConnected, testMode, dataFileReader, mode);
     state->highDPIScaleFactor = devicePixelRatio();  // Use this to adjust graphics for high-DPI monitors.
     state->availableScreenResolution = QGuiApplication::primaryScreen()->geometry();
     controllerInterface = new ControllerInterface(state, rhxController, boardSerialNumber, useOpenCL, dataFileReader, this, is7310);

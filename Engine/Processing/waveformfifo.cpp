@@ -94,6 +94,7 @@ void WaveformFifo::allocateAnalogBuffer(std::vector<float*> &bufferArray, const 
     analogWaveformIndices[waveName] = buffer;
 }
 
+
 void WaveformFifo::allocateDigitalBuffer(std::vector<uint16_t*> &bufferArray, const std::string& waveName)
 {
     memoryNeededGB += sizeof(uint16_t) * bufferAllocateSize / (1024.0 * 1024.0 * 1024.0);
@@ -187,6 +188,9 @@ void WaveformFifo::allocateMemory()
                 break;
             case BoardDigitalOutSignal:
                 allocateAnalogBuffer(boardDigOutBuffer, waveName);
+                break;
+            case StimSignal:
+                allocateDigitalBuffer(stimFlagsBuffer, waveName);
                 break;
             }
         }

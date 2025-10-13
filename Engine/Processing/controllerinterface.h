@@ -135,6 +135,13 @@ public:
     void setGameRefractoryPeriod(int samples);
     void setGameExperimentCondition(int condition);
 
+    void setHitStimAmplitude(double amplitude) { if (gameThread) gameThread->setHitStimAmplitude(amplitude); }
+    void setHitStimFrequency(double frequency) { if (gameThread) gameThread->setHitStimFrequency(frequency); }
+    void setHitStimDuration(double duration) { if (gameThread) gameThread->setHitStimDuration(duration); }
+    void setMissStimAmplitude(double amplitude) { if (gameThread) gameThread->setMissStimAmplitude(amplitude); }
+    void setMissStimFrequency(double frequency) { if (gameThread) gameThread->setMissStimFrequency(frequency); }
+    void setMissStimDuration(double duration) { if (gameThread) gameThread->setMissStimDuration(duration); }
+
     void enableFastSettle(bool enabled);
     void enableExternalFastSettle(bool enabled);
     void setExternalFastSettleChannel(int channel);
@@ -161,6 +168,7 @@ public:
     void clearStimParameters(int stream);
     void uploadStimParameters(Channel* channel);
     void uploadStimParameters();
+    void modulateSpikes(PaddleAction action);
 
 signals:
     void setTimeLabel(QString text);

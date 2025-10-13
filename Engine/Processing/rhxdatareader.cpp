@@ -77,11 +77,9 @@ void RHXDataReader::readAmplifierData(float* buffer, int stream, int channel) co
 
     pRead += 6; // Skip header and timestamp.
     pRead += misoWordSize * (numDataStreams * 3);  // Skip auxillary channels.
-    pRead += misoWordSize * ((numDataStreams * channel) + stream);   // Align with selected stream and channel.
-    if (type == ControllerStimRecord) pRead++;  // Skip top 16 bits of 32-bit MISO word from RHS system.
-    int adcValue;
+    pRead += 2 * ((numDataStreams * channel) + stream);   // Align with selected stream and channel.
     for (int i = 0; i < numSamples; ++i) {
-        adcValue = (int) *pRead;
+        int adcValue = (int) *pRead;
         *pWrite = 0.195F * (float)(adcValue - 32768);     // Return value in microvolts.
         pWrite++;
         pRead += dataFrameSizeInWords;
@@ -97,10 +95,9 @@ void RHXDataReader::readDcAmplifierData(float* buffer, int stream, int channel) 
     pRead += 6;    // Skip header and timestamp.
     pRead += 2 * (numDataStreams * 3);  // Skip auxillary channels.
     pRead += 2 * ((numDataStreams * channel) + stream);   // Align with selected stream and channel.
-    int adcValue;
     for (int i = 0; i < numSamples; ++i) {
-        adcValue = (int) *pRead;
-        *pWrite = -0.01923F * (float)(adcValue - 512);     // Return value in volts.
+        int adcValue = (int) *pRead;
+        *pWrite = 0.195F * (float)(adcValue - 32768);     // Return value in microvolts.
         pWrite++;
         pRead += dataFrameSizeInWords;
     }

@@ -39,6 +39,7 @@
 #include "referenceselectdialog.h"
 #include "controlwindow.h"
 #include "scrollablemessageboxdialog.h"
+#include "controlpanelgametab.h"
 
 ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, ControllerInterface* controllerInterface_, AbstractRHXController* rhxController_) :
     QMainWindow(nullptr), // Since the parent isn't a QMainWindow but a QDialog, just pass a nullptr
@@ -133,6 +134,7 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
     statusBarLabel(nullptr),
     statusBars(nullptr),
     controlPanel(nullptr),
+    pongGameTab(nullptr),
     multiColumnDisplay(nullptr),
     tcpDialog(nullptr),
     tcpDisplay(nullptr),
@@ -249,75 +251,61 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
     addToolBar(Qt::TopToolBarArea, controlButtons);
 
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
-        qDebug() << "[DEBUG ControlWindow] Creating XMLInterface for stimulation...";
         stimParametersInterface = new XMLInterface(state, controllerInterface, XMLIncludeStimParameters);
-        qDebug() << "[DEBUG ControlWindow] Creating StimParametersClipboard...";
         stimClipboard = new StimParametersClipboard(state, controllerInterface);
-        qDebug() << "[DEBUG ControlWindow] Stimulation interfaces created successfully";
     }
 
-    qDebug() << "[DEBUG ControlWindow] Creating MultiColumnDisplay...";
     multiColumnDisplay = new MultiColumnDisplay(controllerInterface, state, this);
     controllerInterface->setDisplay(multiColumnDisplay);
-    qDebug() << "[DEBUG ControlWindow] MultiColumnDisplay created successfully";
 
-    qDebug() << "[DEBUG ControlWindow] About to create control panel...";
-    qDebug() << "[DEBUG ControlWindow] Test mode:" << state->testMode->getValue();
-    
-    try {
-        if (state->testMode->getValue()) {
-            qDebug() << "[DEBUG ControlWindow] Creating TestControlPanel...";
-            qDebug() << "[DEBUG ControlWindow] Parameters - controllerInterface:" << (void*)controllerInterface;
-            qDebug() << "[DEBUG ControlWindow] Parameters - rhxController:" << (void*)rhxController;
-            qDebug() << "[DEBUG ControlWindow] Parameters - state:" << (void*)state;
-            qDebug() << "[DEBUG ControlWindow] Parameters - parser:" << (void*)parser;
-            qDebug() << "[DEBUG ControlWindow] Parameters - multiColumnDisplay:" << (void*)multiColumnDisplay;
-            qDebug() << "[DEBUG ControlWindow] Parameters - stimParametersInterface:" << (void*)stimParametersInterface;
-            controlPanel = new TestControlPanel(controllerInterface, rhxController, state, parser, multiColumnDisplay, stimParametersInterface, this);
-            qDebug() << "[DEBUG ControlWindow] TestControlPanel created successfully";
-        } else {
-            qDebug() << "[DEBUG ControlWindow] Creating ControlPanel...";
-            controlPanel = new ControlPanel(controllerInterface, state, parser, this);
-            qDebug() << "[DEBUG ControlWindow] ControlPanel created successfully";
-        }
-    } catch (const std::exception& e) {
-        qDebug() << "[ERROR ControlWindow] Exception while creating control panel:" << e.what();
-        throw;
-    } catch (...) {
-        qDebug() << "[ERROR ControlWindow] Unknown exception while creating control panel";
-        throw;
+    if (state->testMode->getValue()) {
+        controlPanel = new TestControlPanel(controllerInterface, rhxController, state, parser, multiColumnDisplay, stimParametersInterface, this);
+    } else {
+        controlPanel = new ControlPanel(controllerInterface, state, parser, this);
     }
-    
-    qDebug() << "[DEBUG ControlWindow] Hiding control panel...";
-    controlPanel->hide();
-    qDebug() << "[DEBUG ControlWindow] Control panel setup completed";
 
     controllerInterface->setControlPanel(controlPanel);
 
-    QVBoxLayout *controlPanelCol = new QVBoxLayout;
-    if (!state->testMode->getValue()) {
-        controlPanelCol->addWidget(showControlPanelButton);
-        controlPanelCol->setAlignment(Qt::AlignTop);
-    }
-    controlPanelCol->addWidget(controlPanel);
+    // ############# NEW LAYOUT LOGIC #############
 
-    QHBoxLayout *mainLayout = new QHBoxLayout;
-    mainLayout->addLayout(controlPanelCol);
-    mainLayout->setAlignment(controlPanelCol, Qt::AlignTop);
+    QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
 
+    // Create PongGameWidget if the controller supports it
+    if (state->getControllerTypeEnum() == ControllerStimRecord) {
+        pongGameTab = new ControlPanelGameTab(controllerInterface, state, parser, this);
+        connect(controllerInterface, &ControllerInterface::gameDataUpdated, pongGameTab, &ControlPanelGameTab::updateGameData);
+        PongGameWidget *pongGameWidget = pongGameTab->getPongGameWidget();
+        pongGameWidget->setParent(this); // Reparent the widget to the main window
+
+        // Add the game widget to the splitter
+        splitter->addWidget(pongGameWidget);
+
+        // Add the game tab (now just controls) to the main control panel's tab widget
+        if (auto* panel = qobject_cast<ControlPanel*>(controlPanel)) {
+            panel->insertTab(0, pongGameTab, tr("Game")); 
+}
+    } else {
+        pongGameTab = nullptr;
+}
     QScrollArea *scrollArea = new QScrollArea(this);
     scrollArea->setWidget(multiColumnDisplay);
     scrollArea->setWidgetResizable(true);
     scrollArea->setFrameShape(QFrame::NoFrame);
-    mainLayout->addWidget(scrollArea);
 
-    QWidget *central = new QWidget(this);
-    central->setLayout(mainLayout);
+    // Add the multi-column display to the splitter
+    splitter->addWidget(scrollArea);
+    splitter->setStretchFactor(1, 1); // Allow the waveform display to expand
 
-    setCentralWidget(central);
+    setCentralWidget(splitter);
 
-    connect(state, SIGNAL(stateChanged()), this, SLOT(updateFromState()));  // Wait until ControlPanel is set up before making
-                                                                            // this connection.
+    // Create and add the control panel dock widget
+    controlPanelDockWidget = new QDockWidget(tr("Control Panel"), this);
+    controlPanelDockWidget->setWidget(controlPanel);
+    addDockWidget(Qt::LeftDockWidgetArea, controlPanelDockWidget);
+
+    // ############# END OF NEW LAYOUT LOGIC #############
+
+    connect(state, SIGNAL(stateChanged()), this, SLOT(updateFromState()));
     setWindowIcon(QIcon(":/images/IntanLogo_32x32_white_frame.png"));
 
     QString title = tr("Intan Technologies ");
@@ -340,7 +328,6 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
 
     setStatusBarReady();
 
-    //Get ControlWindow maximize state, size, position, and ControlPanel expanded state and current tab from QSettings.
     QSettings settings;
     QSize defaultSize = QSize(1080, 910);
     resize(defaultSize);
@@ -350,7 +337,7 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
     restoreGeometry(settings.value("geometry", defaultGeometry).toByteArray());
 
     if (state->testMode->getValue()) {
-        resize(width(), 910); // Default height for Windows that fully show at least 32 channels vertically and control panel without needing scrollbars
+        resize(width(), 910);
     } else {
         if (settings.value("isMaximized", isMaximized()).toBool())
             showMaximized();
@@ -1118,7 +1105,7 @@ void ControlWindow::showControlPanel()
     if (!state->testMode->getValue()) {
         showControlPanelButton->hide();
     }
-    controlPanel->show();
+    controlPanelDockWidget->show();
 }
 
 void ControlWindow::hideControlPanel()
@@ -1126,7 +1113,7 @@ void ControlWindow::hideControlPanel()
     if (!state->testMode->getValue()) {
         showControlPanelButton->show();
     }
-    controlPanel->hide();
+    controlPanelDockWidget->hide();
 }
 
 // If this is the first time the probe map window has been activated, create a probe map window. Activate the probe map.

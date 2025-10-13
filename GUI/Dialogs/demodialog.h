@@ -36,19 +36,29 @@
 
 #include "rhxglobals.h"
 
+namespace Ui {
+class DemoDialog;
+}
 
 class DemoDialog : public QDialog
 {
     Q_OBJECT
-public:
-    explicit DemoDialog(DemoSelections *demoSelection_, bool &useOpenCL_, uint8_t &playbackPorts_, QWidget *parent = nullptr);
 
-protected:
-    void closeEvent(QCloseEvent *) override;
+public:
+    explicit DemoDialog(DemoSelections *demoSelection, bool& useOpenCL, uint8_t& playbackPorts, QWidget *parent = nullptr);
+    ~DemoDialog();
+    void addLearningModeButton();
+
+private slots:
+    void usbInterfaceBoardDemo();
+    void recordController();
+    void stimController();
+    void playback();
+    void advanced();
+    void learningModeDemo();
 
 private:
     DemoSelections *demoSelection;
-
     bool *useOpenCL;
     uint8_t *playbackPorts;
     QLabel *message;
@@ -57,13 +67,7 @@ private:
     QPushButton *stimControllerButton;
     QPushButton *playbackButton;
     QPushButton *advancedButton;
-
-private slots:
-    void usbInterface();
-    void recordController();
-    void stimController();
-    void playback();
-    void advanced();
+    QPushButton *learningModeButton;
 };
 
 #endif // DEMODIALOG_H

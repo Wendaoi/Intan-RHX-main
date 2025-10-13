@@ -47,7 +47,6 @@ class ControlPanelImpedanceTab;
 class ControlPanelAudioAnalogTab;
 class ControlPanelConfigureTab;
 class ControlPanelTriggerTab;
-class ControlPanelGameTab;
 
 class ControlPanel : public AbstractPanel
 {
@@ -60,9 +59,13 @@ public:
 
     void updateSlidersEnabled(YScaleUsed yScaleUsed) override final;
     YScaleUsed slidersEnabled() const override final;
+    
+    void setCurrentTabName(QString tabName) override;
+    QString currentTabName() const override;
 
-    void setCurrentTabName(QString tabName) override final;
-    QString currentTabName() const override final;
+    void insertTab(int index, QWidget *widget, const QString &label);
+
+    QTabWidget *tabWidget;
 
 public slots:
     void updateFromState() override final;
@@ -81,8 +84,8 @@ private:
     ControlPanelBandwidthTab *bandwidthTab;
     ControlPanelImpedanceTab *impedanceTab;
     ControlPanelAudioAnalogTab *audioAnalogTab;
+    ControlPanelConfigureTab *configureTab;
     ControlPanelTriggerTab *triggerTab;
-    ControlPanelGameTab *gameTab;
 
     QSlider *lowSlider;
     QSlider *highSlider;

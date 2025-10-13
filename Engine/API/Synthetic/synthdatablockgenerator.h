@@ -34,6 +34,7 @@
 #include "abstractrhxcontroller.h"
 #include "randomnumber.h"
 #include "rhxdatablock.h"
+#include "Engine/Threads/abstractgamecontroller.h" // Added for PaddleAction
 #include <QElapsedTimer>
 #include <cstdint>
 #include <vector>
@@ -60,6 +61,7 @@ public:
     NeuralSynthSource(RandomNumber* randomGenerator_, double sampleRate, int nUnits_);
     void reset() override;
     uint16_t nextSample() override;
+    void setSpikeRate(double rateHz);
 
 private:
     int nUnits;
@@ -120,6 +122,7 @@ public:
 
     long readSynthDataBlocksRaw(int numBlocks, uint8_t* buffer, int numDataStreams);
     void reset();
+    void modulateSpikes(PaddleAction action);
 
 private:
     ControllerType type;

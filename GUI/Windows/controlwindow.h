@@ -56,8 +56,9 @@
 #include "xmlinterface.h"
 #include "stimparametersclipboard.h"
 #include "statusbars.h"
+#include "ponggamewidget.h"
 
-class QPushButton;
+class ControlPanelGameTab;
 
 class ControlWindow : public QMainWindow
 {
@@ -308,6 +309,9 @@ private:
     StatusBars* statusBars;
 
     AbstractPanel *controlPanel;
+    ControlPanelGameTab *pongGameTab;
+    QDockWidget *controlPanelDockWidget;
+    QDockWidget *pongGameDockWidget;
 
     MultiColumnDisplay *multiColumnDisplay;
 

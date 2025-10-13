@@ -99,9 +99,9 @@ void AbstractPanel::promptColorChange()
     }
 }
 
-void AbstractPanel::clipWaveforms(Qt::CheckState checkState)
+void AbstractPanel::clipWaveforms(int checkState)
 {
-    state->clipWaveforms->setValue(checkState != Qt::Unchecked);
+    state->clipWaveforms->setValue(checkState == Qt::Checked);
 }
 
 void AbstractPanel::changeTimeScale(int index)

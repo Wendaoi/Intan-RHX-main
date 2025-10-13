@@ -30,6 +30,8 @@
 #include <atomic>
 #include <vector>
 #include <map>
+#include <mutex>
+#include <shared_mutex>
 #include "waveformfifo.h"
 #include "systemstate.h"
 #include "filter.h"
@@ -56,6 +58,7 @@ struct SpikeEvent {
 // 通道处理结构
 struct ChannelProcessor {
     QString name;
+    double sampleRate;                          // 采样率（Hz）
     SecondOrderHighpassFilter* highpassFilter;  // 2nd order Bessel high-pass filter (100Hz)
     FirstOrderLowpassFilter* lowpassFilter;     // 1st order Bessel low-pass filter (1Hz)
     float smoothedAbsValue;                     // 平滑后的绝对值
@@ -64,100 +67,136 @@ struct ChannelProcessor {
     int samplesSinceLastSpike;                  // 自上次尖峰以来的样本数
 };
 
+class ControllerInterface; // Forward declaration
+
+#include "Engine/Threads/abstractgamecontroller.h"
+#include "Engine/Threads/qlearningagent.h"
+
+class SpikeBasedController : public AbstractGameController {
+public:
+    SpikeBasedController(std::function<std::pair<int, int>()> spike_counts_func) : get_spike_counts(spike_counts_func) {}
+    PaddleAction getAction(const GameStateInfo& ) override {
+        auto counts = get_spike_counts();
+        if (counts.first > counts.second) return PaddleAction::MoveUp;
+        if (counts.second > counts.first) return PaddleAction::MoveDown;
+        return PaddleAction::Stay;
+    }
+    void update(const GameStateInfo&, PaddleAction, float, const GameStateInfo&) override {}
+private:
+    std::function<std::pair<int, int>()> get_spike_counts;
+};
+
+
 class GameThread : public QThread
 {
     Q_OBJECT
 public:
-    explicit GameThread(WaveformFifo* waveformFifo_, SystemState* state_, QObject* parent = nullptr);
+    GameThread(WaveformFifo* waveformFifo_, SystemState* state_, ControllerInterface* controllerInterface_, QObject* parent = nullptr);
     ~GameThread();
 
     void run() override;
     void startRunning();
     void stopRunning();
-    bool isActive() const;
     void close();
+    bool isActive() const;
 
-    // 游戏接口函数
     void setThresholdMultiplier(float multiplier);
-    void setMinThreshold(float minThreshold);
+    void setMinThreshold(float minThresholdValue);
     void setRefractoryPeriod(int samples);
-    void setMotorRegions(const std::vector<QString>& upChannels, const std::vector<QString>& downChannels);
     void setExperimentCondition(ExperimentCondition condition);
-    
-    // 刺激控制接口
+    void setMotorRegions(const std::vector<QString>& upChannels, const std::vector<QString>& downChannels);
+    void setDefaultMotorRegionsForDemo();
+
     void setStimChannelEnabled(const QString& channelName, bool enabled);
     void setStimChannelParameters(const QString& channelName, double frequency, double duration);
     void triggerStimChannel(const QString& channelName, double amplitude);
 
-signals:
-    // 尖峰检测信号
-    void spikeDetected(const SpikeEvent& spike);
-    void spikesPerSecondUpdated(const std::map<QString, float>& spikesPerSecond);
-
-    // 游戏信号
-    void gameDataUpdated(const GameState& gameState); // 向UI发送游戏状态
-    
-    // 刺激信号
-    void sendSensoryStim(int zone); // 发送位置刺激
-    void sendHitStim();             // 发送成功拦截的刺激
-    void sendMissStim();            // 发送未成功拦截的刺激
-    void stopAllStim();             // 停止所有刺激 (用于Silent模式)
-    
-    // 状态信号
-    void error(QString message);
-    void statusUpdated(QString status);
-
-public slots:
     void updateChannelList();
 
+    // Functions for setting stim parameters
+    void setHitStimAmplitude(double amplitude);
+    void setHitStimFrequency(double frequency);
+    void setHitStimDuration(double duration);
+    void setMissStimAmplitude(double amplitude);
+    void setMissStimFrequency(double frequency);
+    void setMissStimDuration(double duration);
+
+
+signals:
+    void gameDataUpdated(const GameState& newState);
+    void spikeDetected(const SpikeEvent& spike);
+    void spikesPerSecondUpdated(const std::map<QString, float>& spikesPerSecond);
+    void statusUpdated(const QString& status);
+    void error(const QString& errorMsg);
+    void sendHitStim();
+    void sendMissStim();
+    void stopAllStim();
+    void sendSensoryStim(int zone);
+
 private:
+    void initializeThreadSafety();
+    void initializeChannelProcessors();
+    void cleanupChannelProcessors();
+    void processSampleBlock(int numSamples);
+    bool detectSpike(ChannelProcessor& processor, float value, int64_t timestamp);
+    void applyStimParameters(const QString& channelName);
+
+    // Thread-safe helper functions
+    void safeUpdateSpikeCounters(const QString& channelName, int count);
+    std::pair<int, int> safeGetMotorRegionSpikeCounts();
+    GameState safeGetCurrentGameState() const;
+
+    void updateSpikesPerSecond();
+
+    // Stimulation trigger functions
+    void triggerHitStimulus();
+    void triggerMissStimulus();
+    void triggerSilentStimulus();
+
+    // New functions for learning mode
+    void initializeGameController();
+    GameStateInfo getCurrentGameStateInfo();
+    float calculateReward(GameEvent event, const PongGame& game);
+
+    ControllerInterface* controllerInterface;
     WaveformFifo* waveformFifo;
     SystemState* state;
-    
-    // 线程控制
-    volatile bool keepGoing;
-    volatile bool running;
-    volatile bool stopThread;
-    
-    // 游戏实例
     PongGame* pongGame;
+    std::unique_ptr<AbstractGameController> gameController;
 
-    // 运动区域通道
-    std::vector<QString> motorRegion1Channels; // Up
-    std::vector<QString> motorRegion2Channels; // Down
-
-    // 通道处理器
     std::vector<ChannelProcessor> channelProcessors;
     std::map<QString, int> channelIndexMap;
-    
-    // 尖峰检测参数
+
+    // Spike detection parameters
+    std::mutex spikeDetectionMutex;
     float thresholdMultiplier;
     float minThreshold;
     int refractoryPeriod;
-    
-    // 统计数据
+
+    // Motor region channels
+    std::shared_mutex motorChannelsMutex;
+    std::vector<QString> motorRegion1Channels; // Up
+    std::vector<QString> motorRegion2Channels; // Down
+
+    // Statistics
+    mutable std::mutex statsMutex;
     std::map<QString, int> spikeCounters;
     std::map<QString, float> spikesPerSecond;
     int64_t lastStatsUpdate;
-    
-    // 初始化函数
-    void initializeChannelProcessors();
-    void cleanupChannelProcessors();
-    
-    // 核心处理函数
-    void processSampleBlock(int numSamples);
-    bool detectSpike(ChannelProcessor& processor, float value, int64_t timestamp);
-    
-    // 刺激控制函数
-    void applyStimParameters(const QString& channelName);
-    
-    // 工具函数
-    void updateSpikesPerSecond();
+    int totalRallyCount;
+    int totalRallyLengthSum;
+    float averageRallyLength;
 
-    // 刺激触发函数
-    void triggerHitStimulus();      // 成功拦截的刺激
-    void triggerMissStimulus();     // 未成功拦截的刺激 (Stimulus模式)
-    void triggerSilentStimulus();   // 静默模式下的刺激控制
+    // Stimulation parameters
+    std::mutex stimParamsMutex;
+    double hitStimAmplitude, hitStimFrequency, hitStimDuration;
+    double missStimAmplitude, missStimFrequency, missStimDuration;
+
+    std::mutex signalSourcesMutex;
+
+    std::atomic<bool> keepGoing;
+    std::atomic<bool> running;
+    std::atomic<bool> stopThread;
 };
 
 #endif // GAMETHREAD_H

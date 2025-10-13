@@ -2,6 +2,9 @@
 #include "controllerinterface.h"
 #include "Engine/Threads/ponggame.h" // For ExperimentCondition enum
 #include "Engine/Threads/gamethread.h" // For GameState struct
+#include <QTimer>
+#include <QMessageBox>
+#include <QStyle>
 
 ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterface_, SystemState* state_, CommandParser* /*parser_*/, QWidget *parent) :
     QWidget(parent),
@@ -59,19 +62,32 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
     paddlePositionLabel = new QLabel(tr("Paddle: ---"));
     bouncesLabel = new QLabel(tr("Bounces: 0"));
 
+
+
+
     QVBoxLayout *stateLayout = new QVBoxLayout;
     stateLayout->addWidget(ballPositionLabel);
     stateLayout->addWidget(paddlePositionLabel);
     stateLayout->addWidget(bouncesLabel);
+    stateLayout->addWidget(cpuLoadLabel);
+    stateLayout->addWidget(cpuLoadProgressBar);
+    stateLayout->addWidget(fifoStatusLabel);
+    stateLayout->addWidget(fifoProgressBar);
+    stateLayout->addWidget(spikeRateLabel);
+    stateLayout->addWidget(validationStatusLabel);
     stateGroupBox->setLayout(stateLayout);
 
     // Main Layout
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(controlGroupBox);
-    mainLayout->addWidget(pongGameWidget);
     mainLayout->addWidget(stateGroupBox);
     mainLayout->addStretch(1);
     setLayout(mainLayout);
+}
+
+PongGameWidget* ControlPanelGameTab::getPongGameWidget() const
+{
+    return pongGameWidget;
 }
 
 void ControlPanelGameTab::updateFromState()
@@ -90,7 +106,7 @@ void ControlPanelGameTab::updateFromState()
 
     if (!isRunning) {
         if (enableGameCheckBox->isChecked()) {
-            enableGameCheckBox->setChecked(false); // This will trigger toggleGame(false)
+            // enableGameCheckBox->setChecked(false); // This will trigger toggleGame(false)
         }
         updateGameData(GameState{0, 0, 0, 0, 320, 0, 0, 0.0f});
     }
@@ -150,4 +166,83 @@ void ControlPanelGameTab::setExperimentCondition(int index)
         default: condition = ExperimentCondition::Rest; break;
     }
     controllerInterface->setGameExperimentCondition(static_cast<int>(condition));
+}
+
+void ControlPanelGameTab::updateSpikeRate(const std::map<QString, float>& spikesPerSecond)
+{
+    // For simplicity, just display the spike rate of the first channel, or an average.
+    // A more sophisticated display might involve a graph or list.
+    if (!spikesPerSecond.empty()) {
+        QString channelName = spikesPerSecond.begin()->first;
+        float rate = spikesPerSecond.begin()->second;
+        spikeRateLabel->setText(QString("Spike Rate (%1): %2 Hz").arg(channelName).arg(rate, 0, 'f', 1));
+    } else {
+        spikeRateLabel->setText("Spike Rate: N/A");
+    }
+}
+
+void ControlPanelGameTab::updatePerformanceMetrics()
+{
+    // Placeholder for actual implementation. You might get CPU load and FIFO status from SystemState
+    // or other monitoring classes.
+    cpuLoadLabel->setText(QString("CPU Load: %1%").arg(controllerInterface->latestWaveformProcessorCpuLoad(), 0, 'f', 1));
+    fifoStatusLabel->setText(QString("FIFO Status: %1%").arg(controllerInterface->swBufferPercentFull(), 0, 'f', 1));
+
+    cpuLoadProgressBar->setValue(static_cast<int>(controllerInterface->latestWaveformProcessorCpuLoad()));
+    fifoProgressBar->setValue(static_cast<int>(controllerInterface->swBufferPercentFull()));
+}
+
+void ControlPanelGameTab::setHitStimAmplitude(double value)
+{
+    controllerInterface->setHitStimAmplitude(value);
+}
+
+void ControlPanelGameTab::setHitStimFrequency(double value)
+{
+    controllerInterface->setHitStimFrequency(value);
+}
+
+void ControlPanelGameTab::setHitStimDuration(double value)
+{
+    controllerInterface->setHitStimDuration(value);
+}
+
+void ControlPanelGameTab::setMissStimAmplitude(double value)
+{
+    controllerInterface->setMissStimAmplitude(value);
+}
+
+void ControlPanelGameTab::setMissStimFrequency(double value)
+{
+    controllerInterface->setMissStimFrequency(value);
+}
+
+void ControlPanelGameTab::setMissStimDuration(double value)
+{
+    controllerInterface->setMissStimDuration(value);
+}
+
+void ControlPanelGameTab::validateParameters()
+{
+    // Example validation: check if stimulus parameters are within safe ranges
+    // This is a placeholder; actual validation logic would be more complex
+    bool valid = true;
+    QString message = "Parameters are valid.";
+
+    if (hitStimAmplitudeSpinBox->value() > 2000.0 || missStimAmplitudeSpinBox->value() > 2000.0) {
+        message = "Warning: Stimulus amplitude exceeds recommended limits.";
+        valid = false;
+    }
+
+    if (hitStimDurationSpinBox->value() < 10.0 || missStimDurationSpinBox->value() < 10.0) {
+        message = "Warning: Stimulus duration is too short.";
+        valid = false;
+    }
+
+    if (valid) {
+        validationStatusLabel->setStyleSheet("color: green");
+    } else {
+        validationStatusLabel->setStyleSheet("color: orange");
+    }
+    validationStatusLabel->setText(message);
 }

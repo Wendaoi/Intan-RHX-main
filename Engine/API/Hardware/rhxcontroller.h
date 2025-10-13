@@ -48,7 +48,7 @@ public:
 
     bool isSynthetic() const override { return false; }
     bool isPlayback() const override { return false; }
-    AcquisitionMode acquisitionMode() const override { return LiveMode; }
+    AcquisitionMode acquisitionMode() const override { return HardwareMode; }
 
     std::vector<std::string> listAvailableDeviceSerials();
 

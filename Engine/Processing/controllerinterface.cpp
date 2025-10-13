@@ -162,6 +162,10 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     QObject::connect(waveformProcessorThread, &WaveformProcessorThread::finished, waveformProcessorThread, &QObject::deleteLater);
     QObject::connect(waveformProcessorThread, &WaveformProcessorThread::cpuLoadPercent, this, &ControllerInterface::updateWaveformProcessorCpuLoad);
 
+    // Set thread priorities to ensure data processing is not starved by other threads.
+    usbDataThread->setPriority(QThread::HighPriority);
+    waveformProcessorThread->setPriority(QThread::HighPriority);
+
     saveToDiskThread = new SaveToDiskThread(waveformFifo, state, this);
     QObject::connect(saveToDiskThread, &SaveToDiskThread::finished, saveToDiskThread, &QObject::deleteLater);
     if (dataFileReader) {
@@ -173,15 +177,21 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     }
 
     // 创建并配置GameThread
+    qDebug() << "[ControllerInterface] === 创建GameThread ===";
+    qDebug() << "[ControllerInterface] GameThread指针:" << (gameThread ? "有效" : "空指针");
+    qDebug() << "[ControllerInterface] WaveformFifo指针:" << (waveformFifo ? "有效" : "空指针");
+    qDebug() << "[ControllerInterface] SystemState指针:" << (state ? "有效" : "空指针");
+
     gameThread = new GameThread(waveformFifo, state, this);
+    gameThread->setPriority(QThread::NormalPriority); // Set to NormalPriority
     QObject::connect(gameThread, &GameThread::finished, gameThread, &QObject::deleteLater);
-    // 连接游戏刺激信号到处理槽
-    QObject::connect(gameThread, &GameThread::sendSensoryStim, this, &ControllerInterface::handleSensoryStim);
-    QObject::connect(gameThread, &GameThread::sendHitStim, this, &ControllerInterface::handleHitStim);
-    QObject::connect(gameThread, &GameThread::sendMissStim, this, &ControllerInterface::handleMissStim);
-    QObject::connect(gameThread, &GameThread::stopAllStim, this, &ControllerInterface::handleStopAllStim);
-    // 将游戏数据更新信号从GameThread传递到UI
-    QObject::connect(gameThread, &GameThread::gameDataUpdated, this, &ControllerInterface::onGameDataUpdated);
+    // 连接游戏刺激信号到处理槽 - 使用队列连接确保线程安全
+    QObject::connect(gameThread, &GameThread::sendSensoryStim, this, &ControllerInterface::handleSensoryStim, Qt::QueuedConnection);
+    QObject::connect(gameThread, &GameThread::sendHitStim, this, &ControllerInterface::handleHitStim, Qt::QueuedConnection);
+    QObject::connect(gameThread, &GameThread::sendMissStim, this, &ControllerInterface::handleMissStim, Qt::QueuedConnection);
+    QObject::connect(gameThread, &GameThread::stopAllStim, this, &ControllerInterface::handleStopAllStim, Qt::QueuedConnection);
+    // 将游戏数据更新信号从GameThread传递到UI - 使用队列连接确保线程安全
+    QObject::connect(gameThread, &GameThread::gameDataUpdated, this, &ControllerInterface::onGameDataUpdated, Qt::QueuedConnection);
 
     // 启动GameThread的事件循环
     gameThread->start();
@@ -299,14 +309,24 @@ void ControllerInterface::toggleGameThread(bool enabled)
 {
     if (!gameThread) return;
 
+    qDebug() << "[ControllerInterface] === 游戏线程切换 ===";
+    qDebug() << "[ControllerInterface] 切换状态:" << enabled;
+    qDebug() << "[ControllerInterface] 控制器类型:" << state->getControllerTypeEnum()
+             << "是否为StimRecord:" << (state->getControllerTypeEnum() == ControllerStimRecord);
+
     if (enabled) {
-        // 配置运动区域通道 (示例，应从UI或配置文件加载)
-        std::vector<QString> upChannels = {"A-000", "A-001"};
-        std::vector<QString> downChannels = {"A-002", "A-003"};
-        gameThread->setMotorRegions(upChannels, downChannels);
+        // 设置默认运动区域通道（演示模式）
+        qDebug() << "[ControllerInterface] 设置默认运动区域...";
+        gameThread->setDefaultMotorRegionsForDemo();
+        qDebug() << "[ControllerInterface] 启动游戏线程...";
         gameThread->startRunning();
+        if (usbDataThread) usbDataThread->startRunning();
+        if (waveformProcessorThread) waveformProcessorThread->startRunning(rhxController->getNumEnabledDataStreams());
+        qDebug() << "[ControllerInterface] 游戏线程已启动";
     } else {
+        qDebug() << "[ControllerInterface] 停止游戏线程...";
         gameThread->stopRunning();
+        qDebug() << "[ControllerInterface] 游戏线程已停止";
     }
 }
 
@@ -2460,10 +2480,21 @@ void ControllerInterface::uploadStimParameters(Channel* channel)
 
 void ControllerInterface::uploadStimParameters()
 {
-    std::vector<std::string> allChannels = state->signalSources->completeChannelsNameList();
-    for (int i = 0; i < (int) allChannels.size(); i++) {
-        Channel* channel = state->signalSources->channelByName(QString::fromStdString(allChannels[i]));
-        uploadStimParameters(channel);
+    for (int i = 0; i < state->signalSources->numGroups(); ++i) {
+        SignalGroup* group = state->signalSources->groupByIndex(i);
+        for (int j = 0; j < group->numChannels(); ++j) {
+            Channel* channel = group->channelByIndex(j);
+            if (channel->stimParameters->enabled->getValue()) {
+                uploadStimParameters(channel);
+            }
+        }
+    }
+}
+
+void ControllerInterface::modulateSpikes(PaddleAction action)
+{
+    if (rhxController) {
+        rhxController->modulateSpikes(action);
     }
 }
 
