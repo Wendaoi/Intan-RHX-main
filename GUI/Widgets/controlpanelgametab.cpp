@@ -50,6 +50,32 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
     controlLayout->addRow(tr("Min Threshold:"), minThresholdSpinBox);
     controlLayout->addRow(tr("Refractory Period:"), refractoryPeriodSpinBox);
     controlLayout->addRow(tr("Experiment Condition:"), conditionComboBox);
+
+    // Voltage targets (mV)
+    hitTargetVoltageSpinBox = new QDoubleSpinBox;
+    hitTargetVoltageSpinBox->setRange(0.0, 1000.0);
+    hitTargetVoltageSpinBox->setSingleStep(5.0);
+    hitTargetVoltageSpinBox->setValue(75.0);
+    hitTargetVoltageSpinBox->setSuffix(tr(" mV"));
+    connect(hitTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setHitTargetVoltage(double)));
+
+    missTargetVoltageSpinBox = new QDoubleSpinBox;
+    missTargetVoltageSpinBox->setRange(0.0, 1000.0);
+    missTargetVoltageSpinBox->setSingleStep(5.0);
+    missTargetVoltageSpinBox->setValue(150.0);
+    missTargetVoltageSpinBox->setSuffix(tr(" mV"));
+    connect(missTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setMissTargetVoltage(double)));
+
+    sensoryTargetVoltageSpinBox = new QDoubleSpinBox;
+    sensoryTargetVoltageSpinBox->setRange(0.0, 1000.0);
+    sensoryTargetVoltageSpinBox->setSingleStep(5.0);
+    sensoryTargetVoltageSpinBox->setValue(75.0);
+    sensoryTargetVoltageSpinBox->setSuffix(tr(" mV"));
+    connect(sensoryTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setSensoryTargetVoltage(double)));
+
+    controlLayout->addRow(tr("Hit Target Voltage:"), hitTargetVoltageSpinBox);
+    controlLayout->addRow(tr("Miss Target Voltage:"), missTargetVoltageSpinBox);
+    controlLayout->addRow(tr("Sensory Target Voltage:"), sensoryTargetVoltageSpinBox);
     controlGroupBox->setLayout(controlLayout);
 
     // 游戏图形显示
@@ -61,6 +87,9 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
     ballPositionLabel = new QLabel(tr("Ball: (---, ---)"));
     paddlePositionLabel = new QLabel(tr("Paddle: ---"));
     bouncesLabel = new QLabel(tr("Bounces: 0"));
+    // 状态显示
+    spikeRateLabel = new QLabel(tr("Spike Rate: N/A"));
+    validationStatusLabel = new QLabel(tr("Parameters are valid."));
 
 
 
@@ -69,10 +98,7 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
     stateLayout->addWidget(ballPositionLabel);
     stateLayout->addWidget(paddlePositionLabel);
     stateLayout->addWidget(bouncesLabel);
-    stateLayout->addWidget(cpuLoadLabel);
-    stateLayout->addWidget(cpuLoadProgressBar);
-    stateLayout->addWidget(fifoStatusLabel);
-    stateLayout->addWidget(fifoProgressBar);
+    // 移除 CPU/FIFO 指标，仅保留 spike 速率与参数校验
     stateLayout->addWidget(spikeRateLabel);
     stateLayout->addWidget(validationStatusLabel);
     stateGroupBox->setLayout(stateLayout);
@@ -181,16 +207,12 @@ void ControlPanelGameTab::updateSpikeRate(const std::map<QString, float>& spikes
     }
 }
 
-void ControlPanelGameTab::updatePerformanceMetrics()
+void ControlPanelGameTab::updateSpikeRateScalar(float rateHz)
 {
-    // Placeholder for actual implementation. You might get CPU load and FIFO status from SystemState
-    // or other monitoring classes.
-    cpuLoadLabel->setText(QString("CPU Load: %1%").arg(controllerInterface->latestWaveformProcessorCpuLoad(), 0, 'f', 1));
-    fifoStatusLabel->setText(QString("FIFO Status: %1%").arg(controllerInterface->swBufferPercentFull(), 0, 'f', 1));
-
-    cpuLoadProgressBar->setValue(static_cast<int>(controllerInterface->latestWaveformProcessorCpuLoad()));
-    fifoProgressBar->setValue(static_cast<int>(controllerInterface->swBufferPercentFull()));
+    spikeRateLabel->setText(QString("Spike Rate: %1 Hz").arg(rateHz, 0, 'f', 1));
 }
+
+// 移除 CPU/FIFO 指标更新函数
 
 void ControlPanelGameTab::setHitStimAmplitude(double value)
 {
@@ -220,6 +242,21 @@ void ControlPanelGameTab::setMissStimFrequency(double value)
 void ControlPanelGameTab::setMissStimDuration(double value)
 {
     controllerInterface->setMissStimDuration(value);
+}
+
+void ControlPanelGameTab::setHitTargetVoltage(double mv)
+{
+    controllerInterface->setHitTargetVoltage(mv);
+}
+
+void ControlPanelGameTab::setMissTargetVoltage(double mv)
+{
+    controllerInterface->setMissTargetVoltage(mv);
+}
+
+void ControlPanelGameTab::setSensoryTargetVoltage(double mv)
+{
+    controllerInterface->setSensoryTargetVoltage(mv);
 }
 
 void ControlPanelGameTab::validateParameters()

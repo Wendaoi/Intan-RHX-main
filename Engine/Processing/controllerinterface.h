@@ -33,6 +33,9 @@
 
 #include <QObject>
 #include <QString>
+#include <QElapsedTimer>
+#include <QTimer>
+#include <QThread>
 #include "rhxcontroller.h"
 #include "datafilereader.h"
 #include "rhxglobals.h"
@@ -53,6 +56,7 @@
 #include "spectrogramdialog.h"
 #include "spikesortingdialog.h"
 #include "gamethread.h" // 包含GameThread
+#include "stimworker.h"
 
 // Forward declaration for GameState
 struct GameState;
@@ -141,6 +145,10 @@ public:
     void setMissStimAmplitude(double amplitude) { if (gameThread) gameThread->setMissStimAmplitude(amplitude); }
     void setMissStimFrequency(double frequency) { if (gameThread) gameThread->setMissStimFrequency(frequency); }
     void setMissStimDuration(double duration) { if (gameThread) gameThread->setMissStimDuration(duration); }
+    // Voltage-target setters (mV). Currents will be auto-computed from electrode impedance.
+    void setHitTargetVoltage(double mv);
+    void setMissTargetVoltage(double mv);
+    void setSensoryTargetVoltage(double mv);
 
     void enableFastSettle(bool enabled);
     void enableExternalFastSettle(bool enabled);
@@ -178,6 +186,7 @@ signals:
     void cpuLoadPercent(double percent);
     void TCPErrorMessage(QString errorMessage);
     void gameDataUpdated(const GameState& gameState);
+    void spikeRateScalar(float rateHz);
 
 public slots:
     void updateFromState();
@@ -191,15 +200,61 @@ private slots:
     void updateWaveformProcessorCpuLoad(double percentLoad) { waveformProcessorCpuLoad = percentLoad; }
 
     // 游戏数据更新槽
-    void onGameDataUpdated(const GameState& gameState) { emit gameDataUpdated(gameState); }
+    void onGameDataUpdated(const GameState& gameState);
 
     // 游戏刺激处理槽
     void handleSensoryStim(int zone);
     void handleHitStim();
     void handleMissStim();
     void handleStopAllStim();
+    void handleStartSilentWindow(int durationMs);
+    void onStimWorkerTriggerChannel(int zone);
+    void onStimWorkerHitBurst();
 
 private:
+    // Stim dispatch helpers and pacing guards
+    void configureHitStimParams();
+    void configureMissStimParams(); // legacy (train-based), may be unused when session-based enabled
+    void startMissStimSession();
+    void onMissStimSessionTick();
+    void configureSensoryParams();
+    int sensoryChannelIndexForZone(int zone) const { return (zone >= 0 && zone < 8) ? zone : -1; }
+    QString sensoryChannelNameForZone(int zone) const { return QString("A-%1").arg(zone, 3, 10, QChar('0')); }
+    double computeCurrentFromImpedanceUA(const QString& amplifierNativeName, double target_mV) const;
+
+    bool hitStimConfigured = false;
+    bool missStimConfigured = false;
+    bool sensoryConfigured = false;
+    int minStimIntervalMs = 50; // basic pacing to avoid swamping USB/GUI
+    QElapsedTimer hitStimTimer;
+    QElapsedTimer missStimTimer;
+    QTimer missSessionTimer;
+    bool missSessionActive = false;
+    int missTicksRemaining = 0;
+    int missSessionIntervalMs = 200; // 5 Hz
+    double missSessionAmplitude_uA = 1.5;
+    QElapsedTimer sensoryClock;
+    qint64 lastSensoryTriggerMs[8] = {0,0,0,0,0,0,0,0};
+
+    // Sensory coding parameters
+    double sensoryMinHz = 4.0;
+    double sensoryMaxHz = 40.0;
+    double sensoryAmplitude_uA = 0.75; // starting point per paper suggestion
+    int sensoryPulseWidthUs = 100;      // biphasic first phase duration
+
+    // Last game state for proximity (ballX) and scan flags
+    GameState lastGameState;
+    bool haveGameState = false;
+
+    // Feedback silent window (for Silent condition)
+    bool feedbackSilentActive = false;
+    int feedbackSilentDurationMs = 2000;
+    QElapsedTimer feedbackSilentTimer;
+
+    // Voltage targets (mV) that will be converted to per-channel current using measured impedance.
+    double targetHit_mV = 75.0;
+    double targetMiss_mV = 150.0;
+    double targetSensory_mV = 75.0;
     void openController(const QString& boardSerialNumber);
     void initializeController();
     int scanPorts(std::vector<ChipType> &chipType, std::vector<int> &portIndex, std::vector<int> &commandStream,
@@ -249,6 +304,10 @@ private:
     bool is7310;
 
     void outOfMemoryError(double memRequiredGB);
+
+    // Stim worker thread
+    QThread* stimThread = nullptr;
+    StimWorker* stimWorker = nullptr;
 };
 
 #endif // CONTROLLERINTERFACE_H

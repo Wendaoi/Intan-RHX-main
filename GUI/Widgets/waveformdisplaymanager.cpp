@@ -97,6 +97,7 @@ bool WaveformDisplayManager::addWaveform(const QString& waveName, bool isStim, b
     else if (filterText == "LOW") ds->yScaleType = LowpassYScale;
     else if (filterText == "HIGH") ds->yScaleType = HighpassYScale;
     else if (filterText == "SPK") ds->yScaleType = RasterYScale;
+    else if (filterText == "STIM") ds->yScaleType = RasterYScale; // Treat STIM as digital raster track
     else if (filterText == "DC") ds->yScaleType = DCYScale;
     else if (waveName.mid(1,4) == "-AUX") ds->yScaleType = AuxInputYScale;
     else if (waveName.mid(1,4) == "-VDD") ds->yScaleType = SupplyVoltageYScale;

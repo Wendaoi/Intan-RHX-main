@@ -25,8 +25,10 @@
 #include "gamethread.h"
 #include "controllerinterface.h"
 #include "Engine/API/Hardware/rhxdatablock.h" // Added for block size
+#include <QDebug>
 #include <QElapsedTimer>
 #include <QDateTime>
+#include <unordered_set>
 #include <cmath>
 #include <algorithm>
 #include <csignal>
@@ -52,6 +54,9 @@ void GameThread::initializeThreadSafety()
         totalRallyCount = 0;
         totalRallyLengthSum = 0;
         averageRallyLength = 0.0f;
+        lastSpikeDiff = 0;
+        spikeDiffLogCounter = 0;
+        resetBucketState(state->sampleRate->getNumericValue());
     }
     
     // 重置尖峰检测参数
@@ -65,12 +70,37 @@ void GameThread::initializeThreadSafety()
         std::unique_lock<std::shared_mutex> channelsLock(motorChannelsMutex);
         motorRegion1Channels.clear();
         motorRegion2Channels.clear();
+        motorUpSet.clear();
+        motorDownSet.clear();
     }
     
     // 清空刺激参数锁
     {
         std::lock_guard<std::mutex> stimLock(stimParamsMutex);
         // 无特定清理需要
+    }
+}
+
+void GameThread::resetBucketState(double sampleRate)
+{
+    samplesPerBucket = std::max(1, static_cast<int>(std::round(sampleRate * 0.01f)));
+    bucketSamplesRemaining = samplesPerBucket;
+    completedBucketDiffs.clear();
+    decisionWindow.clear();
+    windowSumUp = 0;
+    windowSumDown = 0;
+    // 将500ms转换为桶数：bucketDuration = samplesPerBucket / sampleRate
+    double bucketDurationSec = (sampleRate > 0.0) ? (static_cast<double>(samplesPerBucket) / sampleRate) : 0.01;
+    bucketsPerDecisionWindow = std::max(1, static_cast<int>(std::round(0.5 / bucketDurationSec)));
+    latestBucketSpikeCountUp = 0;
+    latestBucketSpikeCountDown = 0;
+    spikeCounters.clear();
+    spikesPerSecond.clear();
+    lastSpikeDiff = 0;
+    spikeDiffLogCounter = 0;
+    lastStatsUpdate = 0;
+    for (auto& processor : channelProcessors) {
+        processor.bucketSpikeCount = 0;
     }
 }
 
@@ -83,11 +113,23 @@ GameThread::GameThread(WaveformFifo* waveformFifo_, SystemState* state_, Control
     gameController(nullptr),
     thresholdMultiplier(5.0f),
     minThreshold(-20.0f), // 默认阈值改为负数
-    refractoryPeriod(1000),  // 默认1000个样本的不应期
+    refractoryPeriod(std::max(1, static_cast<int>(std::round(state->sampleRate->getNumericValue() * 0.01f)))),
+    samplesPerBucket(std::max(1, static_cast<int>(std::round(state->sampleRate->getNumericValue() * 0.01f)))),
+    bucketSamplesRemaining(samplesPerBucket),
+    completedBucketDiffs(),
+    latestBucketSpikeCountUp(0),
+    latestBucketSpikeCountDown(0),
+    spikeCounters(),
+    spikesPerSecond(),
     lastStatsUpdate(0),
     totalRallyCount(0),
     totalRallyLengthSum(0),
     averageRallyLength(0.0f),
+    lastSpikeDiff(0),
+    spikeDiffLogCounter(0),
+    lastGameStateEmit(std::chrono::steady_clock::time_point::min()),
+    // Limit UI updates to ~60 Hz to reduce cross-thread signal overhead.
+    gameStateUiInterval(std::chrono::milliseconds(16)),
     hitStimAmplitude(100.0),
     hitStimFrequency(100.0),
     hitStimDuration(100.0),
@@ -122,7 +164,9 @@ void GameThread::initializeGameController() {
         gameController = std::make_unique<QLearningAgent>();
         qDebug() << "[GameThread] Initialized QLearningAgent for LearningMode.";
     } else {
-        gameController = std::make_unique<SpikeBasedController>([this](){ return safeGetMotorRegionSpikeCounts(); });
+        gameController = std::make_unique<SpikeBasedController>([this]() {
+            return std::make_pair(latestBucketSpikeCountUp, latestBucketSpikeCountDown);
+        });
         qDebug() << "[GameThread] Initialized SpikeBasedController for non-learning mode.";
     }
 }
@@ -153,9 +197,6 @@ float GameThread::calculateReward(GameEvent event, const PongGame& game) {
 void GameThread::run()
 {
     const int numSamples = RHXDataBlock::samplesPerDataBlock(state->getControllerTypeEnum());
-    int consecutiveFifoErrors = 0;
-    const int MaxConsecutiveFifoErrors = 10;
-
 #ifdef Q_OS_MAC
     sigset_t set;
     sigemptyset(&set);
@@ -176,6 +217,10 @@ void GameThread::run()
 
     while (!stopThread) {
         if (keepGoing) {
+            if (!running.load()) {
+                // Force next emission to fire immediately when the game restarts.
+                lastGameStateEmit = std::chrono::steady_clock::time_point::min();
+            }
             running = true;
 
             // Clear any excess semaphore resources that may have accumulated during startup.
@@ -184,44 +229,74 @@ void GameThread::run()
             }
 
             while (keepGoing && !stopThread) {
-                // Acquire the semaphore, blocking until a data block is made available by the producer thread.
-                waveformFifo->dataForGameThread.acquire();
+                // 每轮限流最多处理若干块，避免长时间独占影响其他读者/绘制。
+                constexpr int kMaxDrainPerCycle = 8;
+                int drainedThisCycle = 0;
+                bool processedAny = false;
+                while (keepGoing && !stopThread && drainedThisCycle < kMaxDrainPerCycle) {
+                    if (!waveformFifo->requestReadNewData(WaveformFifo::ReaderGame, numSamples, true)) {
+                        break; // 本轮没有更多连续数据
+                    }
 
-                // Now that we've been woken up, we know data is available.
-                bool fifoSuccess = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, numSamples, true);
-                
-                if (fifoSuccess) {
-                    // Process spikes regardless of mode, as it might be needed for visualization
+                    processedAny = true;
+
+                    // 处理一块数据
                     processSampleBlock(numSamples);
 
                     // --- LEARNING/CONTROL LOGIC ---
                     int paddle_movement = 0; // -1 for up, 1 for down, 0 for stay
-
                     if (state->getAcquisitionMode() == LearningMode) {
-                        // --- LEARNING MODE ---
                         oldState = getCurrentGameStateInfo();
                         action = gameController->getAction(oldState);
+                        emit requestModulateSpikes(static_cast<int>(action));
+                    }
 
-                        // In Learning Mode, the agent's action modulates the spike rates of the synthetic controller.
-                        if (controllerInterface) {
-                            controllerInterface->modulateSpikes(action);
+                    // --- UNIFIED CONTROL ---
+                constexpr int LogIntervalBuckets = 10;
+                bool bucketUpdated = false;
+                while (auto bucketCounts = consumeCompletedBucketCounts()) {
+                    latestBucketSpikeCountUp = bucketCounts->first;
+                    latestBucketSpikeCountDown = bucketCounts->second;
+                    // 更新500ms滑动窗口（以桶为单位）
+                    decisionWindow.emplace_back(latestBucketSpikeCountUp, latestBucketSpikeCountDown);
+                    windowSumUp += latestBucketSpikeCountUp;
+                    windowSumDown += latestBucketSpikeCountDown;
+                    while ((int)decisionWindow.size() > bucketsPerDecisionWindow) {
+                        windowSumUp -= decisionWindow.front().first;
+                        windowSumDown -= decisionWindow.front().second;
+                        decisionWindow.pop_front();
+                    }
+                    int spikeDiff = latestBucketSpikeCountUp - latestBucketSpikeCountDown;
+                    bool shouldLog = (spikeDiff != lastSpikeDiff);
+                    if (!shouldLog) {
+                        if (++spikeDiffLogCounter >= LogIntervalBuckets) {
+                            shouldLog = true;
+                                spikeDiffLogCounter = 0;
+                            }
+                        } else {
+                            spikeDiffLogCounter = 0;
                         }
-                    }
+                        if (shouldLog) {
+                            lastSpikeDiff = spikeDiff;
+                        }
+                        bucketUpdated = true;
+                }
+                if (bucketUpdated) {
+                    updateSpikesPerSecond();
+                }
 
-                    // --- UNIFIED CONTROL (for both modes) ---
-                    // The paddle is always controlled by comparing spike counts from the two motor regions.
-                    // In LearningMode, these counts are a result of the agent's modulation.
-                    // In normal SpikeBasedMode, these counts come from the hardware or default synthetic signals.
-                    auto counts = safeGetMotorRegionSpikeCounts();
-                    if (counts.first > counts.second) {
-                        paddle_movement = -1; // Up
-                    } else if (counts.second > counts.first) {
-                        paddle_movement = 1; // Down
-                    }
-                    
+                // 使用500ms滑动窗口的区域总尖峰数来判定挡板方向
+                int upWin = windowSumUp;
+                int downWin = windowSumDown;
+                if (upWin > downWin) {
+                    paddle_movement = -1; // Up
+                } else if (downWin > upWin) {
+                    paddle_movement = 1; // Down
+                }
+
                     // --- GAME UPDATE ---
                     GameEvent event = pongGame->update(paddle_movement);
-                    
+
                     // --- LEARNING AGENT UPDATE ---
                     if (state->getAcquisitionMode() == LearningMode) {
                         float reward = calculateReward(event, *pongGame);
@@ -229,26 +304,28 @@ void GameThread::run()
                         gameController->update(oldState, action, reward, newState);
                     }
 
-                    // --- EVENT HANDLING & UI UPDATES ---
+                    // --- EVENT HANDLING (condition-dependent feedback window) ---
+                    ExperimentCondition cond = pongGame->getCondition();
+                    constexpr int kSilentWindowMs = 2000; // 2 s silent window
                     switch(event) {
                         case GameEvent::BallHitPlayerPaddle:
-                            triggerHitStimulus();
-                            emit sendHitStim();
+                            if (cond == ExperimentCondition::Stimulus) {
+                                emit sendHitStim();
+                            } else if (cond == ExperimentCondition::Silent) {
+                                emit startSilentWindow(kSilentWindowMs);
+                            } // NoFeedback: do nothing
                             break;
                         case GameEvent::PlayerMissed:
-                            if (pongGame->getCondition() == ExperimentCondition::Stimulus) {
-                                triggerMissStimulus();
+                            if (cond == ExperimentCondition::Stimulus) {
                                 emit sendMissStim();
-                            } else if (pongGame->getCondition() == ExperimentCondition::Silent) {
-                                triggerSilentStimulus();
-                                emit stopAllStim();
-                            }
+                            } else if (cond == ExperimentCondition::Silent) {
+                                emit startSilentWindow(kSilentWindowMs);
+                            } // NoFeedback: do nothing
                             break;
                         default:
                             break;
                     }
-
-                    emit sendSensoryStim(pongGame->getSensoryStimZone());
+                    // 感知刺激请求改为与UI节流同步，避免每数据块都发出请求造成拥塞。
 
                     if (event == GameEvent::PlayerMissed) {
                         int rallyLength = pongGame->getBounces();
@@ -257,32 +334,53 @@ void GameThread::run()
                         if (totalRallyCount > 0) {
                             averageRallyLength = static_cast<float>(totalRallyLengthSum) / totalRallyCount;
                         }
-                        pongGame->resetBounces(); // 在使用其值后重置计数器
+                        pongGame->resetBounces();
                     }
 
-                    GameState currentState;
-                    currentState.paddle1Y = pongGame->getPaddle1Y();
-                    currentState.ballX = pongGame->getBallX();
-                    currentState.ballY = pongGame->getBallY();
-                    currentState.paddle2Y = 0;
-                    currentState.paddleHeight = pongGame->getPaddleHeight();
-                    currentState.bounces = pongGame->getBounces();
-                    currentState.rallyCount = totalRallyCount;
-                    currentState.avgRallyLength = averageRallyLength;
-                    emit gameDataUpdated(currentState);
+                    waveformFifo->freeOldData(WaveformFifo::ReaderGame);
+                    ++drainedThisCycle;
+                }
 
-                    safeUpdateSpikeCounters("", 0); // Reset spike counters for next block
-
-                    waveformFifo->freeOldData(WaveformFifo::ReaderDisk);
-                } else {
-                    // This should not happen with the semaphore logic, but we keep it for safety.
-                    qDebug() << "[GameThread] ERROR: Acquired semaphore but failed to read from FIFO!";
+                // 若本轮未处理任何数据，则短暂让出CPU。
+                if (!processedAny) {
                     usleep(100);
+                    continue;
+                }
+
+                // 节流UI更新，仅在一定时间间隔后发送最后一帧状态。
+                GameState currentState;
+                currentState.paddle1Y = pongGame->getPaddle1Y();
+                currentState.ballX = pongGame->getBallX();
+                currentState.ballY = pongGame->getBallY();
+                currentState.paddle2Y = 0;
+                currentState.paddleHeight = pongGame->getPaddleHeight();
+                currentState.bounces = pongGame->getBounces();
+                currentState.rallyCount = totalRallyCount;
+                currentState.avgRallyLength = averageRallyLength;
+
+                auto now = std::chrono::steady_clock::now();
+                if (lastGameStateEmit == std::chrono::steady_clock::time_point::min() ||
+                    now - lastGameStateEmit >= gameStateUiInterval) {
+                    // 在UI刷新时机同时发送一次感知刺激请求（StimWorker内部将做速率编码与间隔门控）。
+                    emit sendSensoryStim(pongGame->getSensoryStimZone());
+                    emit gameDataUpdated(currentState);
+                    lastGameStateEmit = now;
                 }
             }
             running = false;
             usleep(1000); // Add a small sleep even when not running to yield CPU
         } else {
+            // 当游戏未运行时，ReaderGame 仍然是一个有效的FIFO读者。
+            // 如果不主动消耗，它会成为“最慢的读者”，限制FIFO释放，导致SW缓冲区上升。
+            // 这里做一次轻量级的被动排空：读取少量数据块后立即释放，不做任何计算。
+            int drainIterations = 0;
+            while (waveformFifo->dataForGameThread.available() > 0 && drainIterations < 4) {
+                waveformFifo->dataForGameThread.acquire();
+                if (waveformFifo->requestReadNewData(WaveformFifo::ReaderGame, numSamples, true)) {
+                    waveformFifo->freeOldData(WaveformFifo::ReaderGame);
+                }
+                ++drainIterations;
+            }
             usleep(1000);
         }
     }
@@ -342,38 +440,68 @@ void GameThread::setMotorRegions(const std::vector<QString>& upChannels, const s
     std::unique_lock<std::shared_mutex> lock(motorChannelsMutex);
     motorRegion1Channels.clear();
     motorRegion2Channels.clear();
+    motorUpSet.clear();
+    motorDownSet.clear();
     for(const auto& ch : upChannels) {
         motorRegion1Channels.push_back(ch);
+        motorUpSet.insert(ch);
     }
     for(const auto& ch : downChannels) {
         motorRegion2Channels.push_back(ch);
+        motorDownSet.insert(ch);
     }
+
+    {
+        std::lock_guard<std::mutex> statsLock(statsMutex);
+        resetBucketState(state->sampleRate->getNumericValue());
+        for (const auto& name : motorRegion1Channels) {
+            spikeCounters[name] = 0;
+        }
+        for (const auto& name : motorRegion2Channels) {
+            spikeCounters[name] = 0;
+        }
+    }
+}
+
+void GameThread::setSensoryRegionChannels(const std::vector<QString>& sensoryChannels)
+{
+    std::unique_lock<std::shared_mutex> lock(motorChannelsMutex);
+    sensoryRegionChannels = sensoryChannels;
+    qDebug() << "[GameThread] 感知区域通道数量:" << sensoryRegionChannels.size();
 }
 
 void GameThread::setDefaultMotorRegionsForDemo()
 {
-    // 新配置：A000-A015 vs A016-A032 对比控制
+    std::vector<QString> sensoryChannels;
     std::vector<QString> defaultUpChannels;
     std::vector<QString> defaultDownChannels;
 
-    // 前16个通道控制上移
-    for (int i = 0; i <= 15; ++i) {
+    // 感知区域 A-000 - A-007
+    for (int i = 0; i <= 7; ++i) {
+        QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
+        sensoryChannels.push_back(channelName);
+    }
+
+    // 上移控制 A-008 - A-015
+    for (int i = 8; i <= 15; ++i) {
         QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
         defaultUpChannels.push_back(channelName);
     }
 
-    // 后16个通道控制下移（A016-A031）
-    for (int i = 16; i <= 31; ++i) {
+    // 下移控制 A-016 - A-023
+    for (int i = 16; i <= 23; ++i) {
         QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
         defaultDownChannels.push_back(channelName);
     }
 
+    setSensoryRegionChannels(sensoryChannels);
     setMotorRegions(defaultUpChannels, defaultDownChannels);
 
-    qDebug() << "[GameThread] 设置新的运动区域对比配置:";
-    qDebug() << "  上移控制 (A000-A015):" << defaultUpChannels.size() << "个通道";
-    qDebug() << "  下移控制 (A016-A031):" << defaultDownChannels.size() << "个通道";
-    qDebug() << "[GameThread] 配置逻辑: 比较两组尖峰总数，多者控制方向";
+    qDebug() << "[GameThread] 设置新的区域配置:";
+    qDebug() << "  感知区域 (A000-A007):" << sensoryChannels.size() << "个通道";
+    qDebug() << "  上移控制 (A008-A015):" << defaultUpChannels.size() << "个通道";
+    qDebug() << "  下移控制 (A016-A023):" << defaultDownChannels.size() << "个通道";
+    qDebug() << "[GameThread] 配置逻辑: 比较上下区域尖峰总数控制挡板, 感知区域用于刺激映射";
 }
 
 void GameThread::setStimChannelEnabled(const QString& channelName, bool enabled)
@@ -452,31 +580,100 @@ void GameThread::initializeChannelProcessors()
         std::lock_guard<std::mutex> spikeLock(spikeDetectionMutex);
         
         cleanupChannelProcessors(); // 先清理现有处理器
-        
+
         double sampleRate = state->sampleRate->getNumericValue();
-        
+        resetBucketState(sampleRate);
+        refractoryPeriod = std::max(1, samplesPerBucket);
+
+        std::shared_lock<std::shared_mutex> motorLock(motorChannelsMutex);
+        bool filterByInterest = !(motorUpSet.empty() && motorDownSet.empty());
         for (size_t i = 0; i < channelNames.size(); ++i) {
             ChannelProcessor processor;
             processor.name = channelNames[i];
-            processor.sampleRate = sampleRate; // Add this line
-            processor.highpassFilter = new SecondOrderHighpassFilter(10.0, 0.707, sampleRate);  // DIAGNOSTIC: Lowered to 10Hz from 100Hz
-            processor.lowpassFilter = new FirstOrderLowpassFilter(1.0, sampleRate);               // 1Hz Bessel低通滤波器
+            bool inUp = motorUpSet.count(processor.name) > 0;
+            bool inDown = motorDownSet.count(processor.name) > 0;
+            bool inSensory = std::find(sensoryRegionChannels.begin(), sensoryRegionChannels.end(), processor.name) != sensoryRegionChannels.end();
+            if (filterByInterest && !inUp && !inDown && !inSensory) {
+                continue;
+            }
+            processor.sampleRate = sampleRate;
+            processor.source = ChannelProcessor::DataSource::Invalid;
+            processor.analogWaveform = nullptr;
+            processor.gpuAddress = { GpuWaveformWideband, -1 };
+            processor.hasSpkDigital = false;
+            processor.spkWaveform = nullptr;
+            processor.stimFlagsWaveform = nullptr;
+            processor.belongsToUpRegion = inUp;
+            processor.belongsToDownRegion = inDown;
+            processor.bucketSpikeCount = 0;
+            processor.stimActive = false;
+            processor.highpassFilter = nullptr;
+            processor.lowpassFilter = nullptr;
             processor.smoothedAbsValue = 0.0f;
             processor.threshold = minThreshold;
             processor.prevValue = 0.0f;
             processor.samplesSinceLastSpike = 0;
 
+            std::string spkWaveName = (processor.name + "|SPK").toStdString();
+            processor.spkWaveform = waveformFifo->getDigitalWaveformPointer(spkWaveName);
+            if (processor.spkWaveform) {
+                processor.hasSpkDigital = true;
+            }
+
+            if (!processor.hasSpkDigital) {
+                std::string highWaveName = (processor.name + "|HIGH").toStdString();
+                GpuWaveformAddress highAddress = waveformFifo->getGpuWaveformAddress(highWaveName);
+                if (highAddress.waveformIndex >= 0) {
+                    processor.source = ChannelProcessor::DataSource::GpuHighpass;
+                    processor.gpuAddress = highAddress;
+                } else {
+                    std::string wideWaveName = (processor.name + "|WIDE").toStdString();
+                    GpuWaveformAddress wideAddress = waveformFifo->getGpuWaveformAddress(wideWaveName);
+                    if (wideAddress.waveformIndex >= 0) {
+                        processor.source = ChannelProcessor::DataSource::GpuWideband;
+                        processor.gpuAddress = wideAddress;
+                    } else {
+                        std::string dcWaveName = (processor.name + "|DC").toStdString();
+                        processor.analogWaveform = waveformFifo->getAnalogWaveformPointer(dcWaveName);
+                        if (processor.analogWaveform) {
+                            processor.source = ChannelProcessor::DataSource::AnalogDC;
+                            processor.highpassFilter = new SecondOrderHighpassFilter(10.0, 0.707, sampleRate);
+                            processor.lowpassFilter = new FirstOrderLowpassFilter(1.0, sampleRate);
+                        }
+                    }
+                }
+            }
+
+            // 获取该通道的刺激标志波形（仅 StimRecord 控制器有效）
+            {
+                std::string stimWaveName = (processor.name + "|STIM").toStdString();
+                processor.stimFlagsWaveform = waveformFifo->getDigitalWaveformPointer(stimWaveName);
+                if (!processor.stimFlagsWaveform) {
+                    if (inSensory) {
+                        qWarning() << "[GameThread] STIM waveform missing for" << processor.name;
+                    }
+                }
+            }
+
+            if (processor.source == ChannelProcessor::DataSource::Invalid && !processor.hasSpkDigital) {
+                qWarning() << "[GameThread] 无法获取通道数据源:" << processor.name;
+                delete processor.highpassFilter;
+                delete processor.lowpassFilter;
+                continue;
+            }
+
             channelProcessors.push_back(processor);
-            channelIndexMap[processor.name] = static_cast<int>(i);
+            channelIndexMap[processor.name] = static_cast<int>(channelProcessors.size() - 1);
             spikeCounters[processor.name] = 0;
             spikesPerSecond[processor.name] = 0.0f;
 
-            // 添加单个通道创建调试（使用state的采样率）
-            if (i < 3) { // 只显示前3个通道避免输出过多
-                qDebug() << "[GameThread] 创建通道处理器[" << i << "]:"
+            if (channelProcessors.size() <= 3) {
+                qDebug() << "[GameThread] 创建通道处理器[" << channelProcessors.size() - 1 << "]:"
                          << "名称:" << processor.name
                          << "采样率:" << sampleRate << "Hz"
-                         << "初始阈值:" << processor.threshold;
+                         << "数据源:" << (processor.hasSpkDigital ? "GPU-SPK" :
+                                          (processor.source == ChannelProcessor::DataSource::AnalogDC ? "DC" :
+                                           (processor.source == ChannelProcessor::DataSource::GpuHighpass ? "GPU-HIGH" : "GPU-WIDE")));
             }
         }
     }
@@ -496,9 +693,18 @@ void GameThread::initializeChannelProcessors()
             qDebug() << "[GameThread]   ... 还有" << (channelProcessors.size() - 5) << "个通道";
             break;
         }
+        QString sourceStr = "UNKNOWN";
+        if (processor.source == ChannelProcessor::DataSource::AnalogDC) {
+            sourceStr = "DC";
+        } else if (processor.source == ChannelProcessor::DataSource::GpuHighpass) {
+            sourceStr = "GPU-HIGH";
+        } else if (processor.source == ChannelProcessor::DataSource::GpuWideband) {
+            sourceStr = "GPU-WIDE";
+        }
         qDebug() << "[GameThread]   通道" << count << ":" << processor.name
                  << "采样率:" << processor.sampleRate << "Hz"
-                 << "阈值:" << processor.threshold;
+                 << "阈值:" << processor.threshold
+                 << "数据源:" << sourceStr;
         count++;
     }
 
@@ -512,6 +718,7 @@ void GameThread::initializeChannelProcessors()
         bool found = channelIndexMap.count(chName) > 0;
         qDebug() << "[GameThread]   下移通道" << chName << ":" << (found ? "找到" : "未找到");
     }
+
 }
 
 void GameThread::cleanupChannelProcessors()
@@ -524,85 +731,100 @@ void GameThread::cleanupChannelProcessors()
     channelIndexMap.clear();
     spikeCounters.clear();
     spikesPerSecond.clear();
+    completedBucketDiffs.clear();
 }
 
 void GameThread::processSampleBlock(int numSamples)
 {
-    // 对每个通道进行处理
-    for (auto& processor : channelProcessors) {
-        // 获取通道波形数据指针 - 注意：此指针仅在当前数据块有效
-        float* waveform = waveformFifo->getAnalogWaveformPointer((processor.name + "|DC").toStdString());
-        if (!waveform) {
-            emit error("Failed to get waveform pointer for channel: " + processor.name);
-            continue;
-        }
-        
-        // 处理每个样本
-        for (int t = 0; t < numSamples; ++t) {
-            try {
-                // 获取原始数据 - WaveformFifo内部有锁保护
-                float rawValue = waveformFifo->getAnalogData(WaveformFifo::ReaderDisk, waveform, t);
-                
-                // 应用高通滤波器
-                float filteredValue = processor.highpassFilter->filterOne(rawValue);
-                
-                // 计算绝对值
-                float absValue = fabsf(filteredValue);
-                
-                // 应用低通滤波器平滑绝对值
-                processor.smoothedAbsValue = processor.lowpassFilter->filterOne(absValue);
-                
-                // 计算动态阈值 (注意：规则是<-5mV，这里我们使用一个更通用的动态阈值)
-                // 阈值现在是负数
-                processor.threshold = (std::min)(minThreshold, -processor.smoothedAbsValue * thresholdMultiplier);
-                
-                // 检测尖峰
-                int64_t timestamp = waveformFifo->getTimeStamp(WaveformFifo::ReaderDisk, t);
-                if (detectSpike(processor, filteredValue, timestamp)) {
-                    // 发送尖峰检测信号
-                    SpikeEvent spike;
-                    spike.channelName = processor.name;
-                    spike.timestamp = timestamp;
-                    spike.amplitude = fabsf(filteredValue);
-                    spike.threshold = processor.threshold;
-                    emit spikeDetected(spike);
+    if (numSamples <= 0) {
+        return;
+    }
 
-                    // 更新计数器
-                    safeUpdateSpikeCounters(processor.name, 1);
-                }
-                
-                processor.prevValue = filteredValue;
-                processor.samplesSinceLastSpike++;
-                
-            } catch (const std::exception& e) {
-                emit error(QString("Error processing sample for channel %1: %2").arg(processor.name).arg(e.what()));
-                continue;
+    std::vector<ChannelProcessor*> activeChannels;  // for spike counting
+    std::vector<ChannelProcessor*> stimChannels;    // for STIM observation
+    activeChannels.reserve(channelProcessors.size());
+    stimChannels.reserve(channelProcessors.size());
+    for (auto& processor : channelProcessors) {
+        if (processor.hasSpkDigital) {
+            activeChannels.push_back(&processor);
+        }
+        if (processor.stimFlagsWaveform) {
+            stimChannels.push_back(&processor);
+        }
+    }
+
+    if (activeChannels.empty()) {
+        bucketSamplesRemaining = std::max(0, bucketSamplesRemaining - numSamples);
+        return;
+    }
+
+    int bufferIndex = waveformFifo->getReadIndex(WaveformFifo::ReaderGame);
+    const int bufferCapacity = waveformFifo->getBufferCapacity();
+
+    auto bucketStart = std::chrono::high_resolution_clock::now();
+    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex) {
+        for (ChannelProcessor* processor : activeChannels) {
+            if (processor->spkWaveform[bufferIndex] & SpikeIdValidSpikeMask) {
+                processor->bucketSpikeCount++;
             }
+        }
+        // STIM detection independent of spike availability
+        for (ChannelProcessor* processor : stimChannels) {
+            bool stimNow = (processor->stimFlagsWaveform[bufferIndex] & 0x0001u) != 0;
+            if (stimNow && !processor->stimActive) {
+                uint32_t ts = waveformFifo->getTimeStamp(WaveformFifo::ReaderGame, sampleIndex);
+                emit stimObserved(processor->name, ts);
+            }
+            processor->stimActive = stimNow;
+        }
+
+        if (--bucketSamplesRemaining == 0) {
+            int bucketSpikeUp = 0;
+            int bucketSpikeDown = 0;
+
+            auto bucketEnd = std::chrono::high_resolution_clock::now();
+            {
+                std::lock_guard<std::mutex> statsLock(statsMutex);
+                spikeCounters.clear();
+                for (auto* processor : activeChannels) {
+                    const int count = processor->bucketSpikeCount;
+                    spikeCounters[processor->name] = count;
+                    if (processor->belongsToUpRegion) {
+                        bucketSpikeUp += count;
+                    } else if (processor->belongsToDownRegion) {
+                        bucketSpikeDown += count;
+                    }
+                    processor->bucketSpikeCount = 0;
+                }
+                for (const auto& name : motorUpSet) {
+                    spikeCounters.try_emplace(name, 0);
+                }
+                for (const auto& name : motorDownSet) {
+                    spikeCounters.try_emplace(name, 0);
+                }
+            }
+
+            completedBucketDiffs.emplace_back(bucketSpikeUp, bucketSpikeDown);
+            // Removed per-bucket debug timing to reduce high-frequency logging overhead.
+            // auto elapsedUs = std::chrono::duration_cast<std::chrono::microseconds>(bucketEnd - bucketStart).count();
+            bucketStart = std::chrono::high_resolution_clock::now();
+            bucketSamplesRemaining = samplesPerBucket;
+        }
+
+        if (++bufferIndex >= bufferCapacity) {
+            bufferIndex = 0;
         }
     }
 }
 
-bool GameThread::detectSpike(ChannelProcessor& processor, float value, int64_t /*timestamp*/)
+std::optional<std::pair<int, int>> GameThread::consumeCompletedBucketCounts()
 {
-    // 检查是否在不应期内
-    if (processor.samplesSinceLastSpike < refractoryPeriod) {
-        return false;
+    if (completedBucketDiffs.empty()) {
+        return std::nullopt;
     }
-    
-    // 线程安全地获取当前阈值
-    float currentThreshold;
-    {
-        std::lock_guard<std::mutex> lock(spikeDetectionMutex);
-        currentThreshold = processor.threshold;
-    }
-    
-    // 检测是否超过负阈值且为负向过零
-    if (processor.prevValue > currentThreshold && value <= currentThreshold) {
-        processor.samplesSinceLastSpike = 0;
-        return true;
-    }
-    
-    return false;
+    auto result = completedBucketDiffs.front();
+    completedBucketDiffs.pop_front();
+    return result;
 }
 
 void GameThread::applyStimParameters(const QString& channelName)
@@ -662,43 +884,6 @@ void GameThread::applyStimParameters(const QString& channelName)
     }
 }
 
-// 线程安全的尖峰计数器更新
-void GameThread::safeUpdateSpikeCounters(const QString& channelName, int count)
-{
-    std::lock_guard<std::mutex> lock(statsMutex);
-    if (channelName.isEmpty()) {
-        // 重置所有计数器
-        for (auto& counter : spikeCounters) {
-            counter.second = 0;
-        }
-    } else {
-        spikeCounters[channelName] += count;
-    }
-}
-
-// 线程安全的运动区域尖峰统计
-std::pair<int, int> GameThread::safeGetMotorRegionSpikeCounts()
-{
-    std::unique_lock<std::shared_mutex> channelsLock(motorChannelsMutex);
-    std::lock_guard<std::mutex> statsLock(statsMutex);
-    
-    int spikesUp = 0;
-    int spikesDown = 0;
-    
-    for(const auto& chName : motorRegion1Channels) {
-        if (spikeCounters.count(chName)) {
-            spikesUp += spikeCounters[chName];
-        }
-    }
-    for(const auto& chName : motorRegion2Channels) {
-        if (spikeCounters.count(chName)) {
-            spikesDown += spikeCounters[chName];
-        }
-    }
-    
-    return std::make_pair(spikesUp, spikesDown);
-}
-
 // 线程安全的游戏状态获取
 GameState GameThread::safeGetCurrentGameState() const
 {
@@ -747,6 +932,12 @@ void GameThread::updateSpikesPerSecond()
             spikeCountsSnapshot = spikeCounters;
         }
         
+        double windowSeconds = 0.0;
+        const double currentSampleRate = state->sampleRate->getNumericValue();
+        if (currentSampleRate > 0.0) {
+            windowSeconds = static_cast<double>(samplesPerBucket) / currentSampleRate;
+        }
+        
         // 重置统计
         std::map<QString, float> newSpikesPerSecond;
         
@@ -758,7 +949,10 @@ void GameThread::updateSpikesPerSecond()
             int spikeCount = spikeCountsSnapshot[channelName];
             
             // 计算每秒尖峰率
-            float sps = static_cast<float>(spikeCount) / static_cast<float>(timeDiff);
+            float sps = 0.0f;
+            if (windowSeconds > 0.0) {
+                sps = static_cast<float>(static_cast<double>(spikeCount) / windowSeconds);
+            }
             
             // 存储结果
             newSpikesPerSecond[channelName] = sps;
@@ -781,23 +975,24 @@ void GameThread::updateSpikesPerSecond()
             lastStatsUpdate = currentTime;
         }
         
-        // 发送更新信号
+        // 发送更新信号（完整映射）
         emit spikesPerSecondUpdated(newSpikesPerSecond);
-        
-        // 可选：发送总体统计信息
+
+        // 计算一个简化数值（活动通道的平均Hz）并发送，便于UI显示
         float totalSPS = 0.0f;
         int activeChannels = 0;
         for (const auto& pair : newSpikesPerSecond) {
-            if (pair.second > 0.1f) { // 只计算有活动的通道
+            if (pair.second > 0.1f) {
                 totalSPS += pair.second;
                 activeChannels++;
             }
         }
-        
         if (activeChannels > 0) {
             float avgSPS = totalSPS / activeChannels;
-            emit statusUpdated(QString("SPS Update: %1 active channels, avg %.1f Hz")
-                             .arg(activeChannels).arg(avgSPS));
+            emit spikeRateScalar(avgSPS);
+            emit statusUpdated(QString("SPS Update: %1 active channels, avg %2 Hz")
+                                   .arg(activeChannels)
+                                   .arg(avgSPS, 0, 'f', 1));
         }
     }
     

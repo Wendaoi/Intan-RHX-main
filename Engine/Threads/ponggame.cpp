@@ -17,20 +17,41 @@ PongGame::PongGame() {
 }
 
 void PongGame::resetBall(bool randomVector) {
-    ballX = static_cast<float>(gameWidth);  // 球点从右侧边界出发
-    ballY = static_cast<float>(gameHeight) / 2.0f;
-    if (randomVector) {
-        ballSpeedX = (rand() % 2 == 0) ? -4.0f : -3.0f;  // Halved horizontal speed
-        int speedY = (rand() % 3) + 1; // Halved vertical speed range
-        if (rand() % 2 == 0) {
-            speedY = -speedY;
-        }
-        ballSpeedY = static_cast<float>(speedY);
+    // 从右侧发球，仅调整“发球角度/速度”，不改变碰撞反弹逻辑
+    ballX = static_cast<float>(gameWidth);
 
-    } else {
-        ballSpeedX = -3.5f;  // Halved horizontal speed
-        ballSpeedY = 1.5f;   // Halved vertical speed
+    if (!randomVector) {
+        ballY = static_cast<float>(gameHeight) / 2.0f;
+        ballSpeedX = -3.5f;
+        ballSpeedY = 1.5f;
+        return;
     }
+
+    // 发球角度随机：
+    // - vy/vx 斜率不小于阈值，避免几乎水平的退化轨迹
+    // - vx 固定向左，速度幅值轻随机
+    // - 初始 y 取在画面内，避免靠边太近
+    const float vxMin = -4.5f, vxMax = -3.0f;   // 向左（负号）
+    const float vyAbsMin = 1.8f, vyAbsMax = 4.0f;
+    const float minSlope = 0.30f;               // |vy/vx| >= 0.30
+    const int   maxTry = 32;
+
+    // 初始 y 留出 20px 边界
+    const float yMargin = 20.0f;
+    ballY = yMargin + (static_cast<float>(rand()) / RAND_MAX) * (gameHeight - 2.0f * yMargin);
+
+    for (int t = 0; t < maxTry; ++t) {
+        float vx = vxMin + (static_cast<float>(rand()) / RAND_MAX) * (vxMax - vxMin);
+        float vy = vyAbsMin + (static_cast<float>(rand()) / RAND_MAX) * (vyAbsMax - vyAbsMin);
+        if (rand() % 2 == 0) vy = -vy;
+        if (std::fabs(vy / vx) < minSlope) continue; // 斜率过小，重采样
+        ballSpeedX = vx;
+        ballSpeedY = vy;
+        return;
+    }
+    // 回退：保守默认
+    ballSpeedX = -3.8f;
+    ballSpeedY = (rand() % 2 == 0) ? 2.0f : -2.0f;
 }
 
 void PongGame::setCondition(ExperimentCondition condition) {

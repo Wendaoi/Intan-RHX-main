@@ -79,6 +79,7 @@ public:
         ReaderDisk,
         ReaderAudio,
         ReaderTCP,
+        ReaderGame,
         NumberOfReaders   // Don't use this last enum; used only by constructor to count total number of readers.
     };
 
@@ -219,6 +220,8 @@ public:
     void copyDigitalData(Reader reader, uint16_t* dest, const uint16_t* waveform, int timeIndex, int numSamples) const;
     void copyDigitalDataArray(Reader reader, uint16_t* dest, const std::vector<uint16_t*>& waveforms, int timeIndex, int numSamples) const;
     void copyTimeStamps(Reader reader, uint32_t* dest, int timeIndex, int numSamples) const;
+    int getReadIndex(Reader reader) const;
+    int getBufferCapacity() const;
 
     MinMax<float> getMinMaxData(Reader reader, const float* waveform, int timeIndex, int numSamples) const;
     void getMinMaxGpuAmplifierData(MinMax<float> &init, Reader reader, GpuWaveformAddress waveformAddress, int timeIndex, int numSamples) const;

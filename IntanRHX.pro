@@ -76,6 +76,7 @@ SOURCES += main.cpp \
     Engine/Threads/audiothread.cpp \
     Engine/Threads/gamethread.cpp \
     Engine/Threads/ponggame.cpp \
+    Engine/Threads/stimworker.cpp \
     Engine/Threads/savetodiskthread.cpp \
     Engine/Threads/tcpdataoutputthread.cpp \
     Engine/Threads/usbdatathread.cpp \
@@ -201,6 +202,7 @@ HEADERS += \
     Engine/Threads/audiothread.h \
     Engine/Threads/gamethread.h \
     Engine/Threads/ponggame.h \
+    Engine/Threads/stimworker.h \
     Engine/Threads/savetodiskthread.h \
     Engine/Threads/tcpdataoutputthread.h \
     Engine/Threads/usbdatathread.h \

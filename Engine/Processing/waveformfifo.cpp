@@ -735,6 +735,16 @@ void WaveformFifo::copyTimeStamps(Reader reader, uint32_t* dest, int timeIndex, 
     }
 }
 
+int WaveformFifo::getReadIndex(Reader reader) const
+{
+    return bufferReadIndex[reader];
+}
+
+int WaveformFifo::getBufferCapacity() const
+{
+    return bufferSize;
+}
+
 // Call once after all reading is complete.
 void WaveformFifo::freeOldData(Reader reader)
 {

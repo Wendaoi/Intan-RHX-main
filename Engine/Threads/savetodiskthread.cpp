@@ -120,7 +120,14 @@ void SaveToDiskThread::run()
                 }
 
                 //qDebug() << "Here. playbackBlocks: " << playbackBlocks << " total data blocks written: " << blocksWritten << " lastRead: " << lastRead;
-                if (waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamples, lastRead)) {
+                bool gotDiskData = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamples, lastRead);
+                if (!gotDiskData && !lastRead) {
+                    // 在实时采集下，若严格条件无法满足，尝试以 lastRead=true 放宽读取，
+                    // 避免 ReaderDisk 成为最慢读者，阻塞写线程导致软件缓冲溢出。
+                    gotDiskData = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisk, NumSamples, true);
+                }
+
+                if (gotDiskData) {
                     blocksWritten++;
                     if (state->triggerSet && !state->triggered) {
 

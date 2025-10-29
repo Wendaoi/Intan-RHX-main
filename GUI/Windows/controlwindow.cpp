@@ -180,6 +180,20 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
     connect(this, SIGNAL(setStatusBarText(QString)), this, SLOT(updateStatusBar(QString)));
     connect(this, SIGNAL(setTimeLabel(QString)), this, SLOT(updateTimeLabel(QString)));
 
+    // Global shortcuts for F1..F8 manual stim pulses (work regardless of focus)
+    auto makeShortcut = [this](int key, int idx){
+        QShortcut* sc = new QShortcut(QKeySequence(key), this);
+        connect(sc, &QShortcut::activated, this, [this, idx](){ controllerInterface->manualStimTriggerPulse(QString("F%1").arg(idx+1)); });
+    };
+    makeShortcut(Qt::Key_F1, 0);
+    makeShortcut(Qt::Key_F2, 1);
+    makeShortcut(Qt::Key_F3, 2);
+    makeShortcut(Qt::Key_F4, 3);
+    makeShortcut(Qt::Key_F5, 4);
+    makeShortcut(Qt::Key_F6, 5);
+    makeShortcut(Qt::Key_F7, 6);
+    makeShortcut(Qt::Key_F8, 7);
+
     controlButtons = new QToolBar(this);
     if (state->playback->getValue()) {
         controlButtons->addAction(jumpToStartAction);
@@ -273,7 +287,13 @@ ControlWindow::ControlWindow(SystemState* state_, CommandParser* parser_, Contro
     // Create PongGameWidget if the controller supports it
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
         pongGameTab = new ControlPanelGameTab(controllerInterface, state, parser, this);
-        connect(controllerInterface, &ControllerInterface::gameDataUpdated, pongGameTab, &ControlPanelGameTab::updateGameData);
+        connect(controllerInterface, &ControllerInterface::gameDataUpdated,
+                pongGameTab, &ControlPanelGameTab::updateGameData,
+                Qt::QueuedConnection);
+        // 连接简化的Spike Rate显示（Hz）
+        connect(controllerInterface, &ControllerInterface::spikeRateScalar,
+                pongGameTab, &ControlPanelGameTab::updateSpikeRateScalar,
+                Qt::QueuedConnection);
         PongGameWidget *pongGameWidget = pongGameTab->getPongGameWidget();
         pongGameWidget->setParent(this); // Reparent the widget to the main window
 

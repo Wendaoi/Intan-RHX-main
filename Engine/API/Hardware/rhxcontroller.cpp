@@ -865,7 +865,9 @@ void RHXController::setManualStimTrigger(int trigger, bool triggerOn)
         std::cerr << "Error in RHXController::setManualStimTrigger: trigger out of range.\n";
         return;
     }
-
+    // Debug: log manual trigger edges without relying on Qt debug types here
+    std::cout << "[RHXController] ManualStimTrigger idx=" << trigger
+              << (triggerOn ? " ON" : " OFF") << '\n';
     dev->SetWireInValue(WireInManualTriggers_S_USB2, (triggerOn ? 1 : 0) << trigger, 1 << trigger);
     dev->UpdateWireIns();
 }
@@ -2203,4 +2205,3 @@ int RHXController::endPointWireOutSerialDigitalIn(bool isUSB3)
     if (isUSB3) return (int)WireOutSerialDigitalIn_R_USB3;
     else return (int)WireOutSerialDigitalIn_S_USB2;
 }
-

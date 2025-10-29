@@ -23,8 +23,8 @@ signals:
 
 public slots:
     void updateGameData(const GameState& gameState);
-    void updatePerformanceMetrics();
     void updateSpikeRate(const std::map<QString, float>& spikesPerSecond);
+    void updateSpikeRateScalar(float rateHz);
 
 private slots:
     void toggleGame(bool enabled);
@@ -38,6 +38,9 @@ private slots:
     void setMissStimAmplitude(double value);
     void setMissStimFrequency(double value);
     void setMissStimDuration(double value);
+    void setHitTargetVoltage(double mv);
+    void setMissTargetVoltage(double mv);
+    void setSensoryTargetVoltage(double mv);
     void validateParameters();
 
 private:
@@ -61,13 +64,13 @@ private:
     QDoubleSpinBox *missStimAmplitudeSpinBox;
     QDoubleSpinBox *missStimFrequencySpinBox;
     QDoubleSpinBox *missStimDurationSpinBox;
+    // Voltage targets (mV)
+    QDoubleSpinBox *hitTargetVoltageSpinBox;
+    QDoubleSpinBox *missTargetVoltageSpinBox;
+    QDoubleSpinBox *sensoryTargetVoltageSpinBox;
 
-    // 性能监控
-    QLabel *cpuLoadLabel;
-    QLabel *fifoStatusLabel;
+    // Spike 速率显示
     QLabel *spikeRateLabel;
-    QProgressBar *cpuLoadProgressBar;
-    QProgressBar *fifoProgressBar;
 
     // 参数验证状态
     QLabel *validationStatusLabel;

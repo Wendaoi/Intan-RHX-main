@@ -31,6 +31,7 @@
 #include <QApplication>
 #include <QtGlobal>
 #include <QElapsedTimer>
+#include <algorithm>
 #include <iostream>
 #include "controlpanel.h"
 #include "impedancereader.h"
@@ -146,8 +147,8 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
         throw;
     }
 
-    double waveformMemoryInSeconds = 30.0;  // TODO: Eventually increase this to 45 or 60 if there is sufficient RAM?
-    double waveformExtraBufferInSeconds = 15.0;
+    double waveformMemoryInSeconds = 45.0;  // 提升缓冲以减轻显示线程压力
+    double waveformExtraBufferInSeconds = 20.0;
     double sampleRate = state->sampleRate->getNumericValue();
     double samplesPerDataBlock = (double) RHXDataBlock::samplesPerDataBlock(state->getControllerTypeEnum());
     int waveformFifoMemoryDataBlocks = ceil(waveformMemoryInSeconds * sampleRate / samplesPerDataBlock);
@@ -162,9 +163,7 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     QObject::connect(waveformProcessorThread, &WaveformProcessorThread::finished, waveformProcessorThread, &QObject::deleteLater);
     QObject::connect(waveformProcessorThread, &WaveformProcessorThread::cpuLoadPercent, this, &ControllerInterface::updateWaveformProcessorCpuLoad);
 
-    // Set thread priorities to ensure data processing is not starved by other threads.
-    usbDataThread->setPriority(QThread::HighPriority);
-    waveformProcessorThread->setPriority(QThread::HighPriority);
+    // Thread priorities are set after the threads are started in runController().
 
     saveToDiskThread = new SaveToDiskThread(waveformFifo, state, this);
     QObject::connect(saveToDiskThread, &SaveToDiskThread::finished, saveToDiskThread, &QObject::deleteLater);
@@ -183,7 +182,6 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     qDebug() << "[ControllerInterface] SystemState指针:" << (state ? "有效" : "空指针");
 
     gameThread = new GameThread(waveformFifo, state, this);
-    gameThread->setPriority(QThread::NormalPriority); // Set to NormalPriority
     QObject::connect(gameThread, &GameThread::finished, gameThread, &QObject::deleteLater);
     // 连接游戏刺激信号到处理槽 - 使用队列连接确保线程安全
     QObject::connect(gameThread, &GameThread::sendSensoryStim, this, &ControllerInterface::handleSensoryStim, Qt::QueuedConnection);
@@ -192,9 +190,34 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
     QObject::connect(gameThread, &GameThread::stopAllStim, this, &ControllerInterface::handleStopAllStim, Qt::QueuedConnection);
     // 将游戏数据更新信号从GameThread传递到UI - 使用队列连接确保线程安全
     QObject::connect(gameThread, &GameThread::gameDataUpdated, this, &ControllerInterface::onGameDataUpdated, Qt::QueuedConnection);
+    QObject::connect(gameThread, &GameThread::stimObserved, this, [this](const QString& ch, uint32_t ts){
+        qDebug() << "[StimObserved]" << ch << "ts=" << ts;
+        state->writeToLog(QString("Stim observed on %1 at ts=%2").arg(ch).arg(ts));
+    }, Qt::QueuedConnection);
+    // 转发简化的Spike Rate（Hz）到UI
+    QObject::connect(gameThread, &GameThread::spikeRateScalar, this, &ControllerInterface::spikeRateScalar, Qt::QueuedConnection);
+    QObject::connect(gameThread, &GameThread::startSilentWindow, this, &ControllerInterface::handleStartSilentWindow, Qt::QueuedConnection);
+
+    // 异步处理学习模式下的尖峰调制，避免GameThread被硬件调用阻塞
+    QObject::connect(gameThread, &GameThread::requestModulateSpikes, this,
+                     [this](int act){ this->modulateSpikes(static_cast<PaddleAction>(act)); },
+                     Qt::QueuedConnection);
 
     // 启动GameThread的事件循环
     gameThread->start();
+    // 提升游戏线程优先级（需在 start() 之后设置）
+    gameThread->setPriority(QThread::HighPriority);
+
+    // Create stim worker thread to offload scheduling
+    stimThread = new QThread(this);
+    stimWorker = new StimWorker();
+    stimWorker->moveToThread(stimThread);
+    connect(stimThread, &QThread::finished, stimWorker, &QObject::deleteLater);
+    connect(stimWorker, &StimWorker::triggerChannel, this, &ControllerInterface::onStimWorkerTriggerChannel, Qt::QueuedConnection);
+    connect(stimWorker, &StimWorker::triggerHitBurst, this, &ControllerInterface::onStimWorkerHitBurst, Qt::QueuedConnection);
+    stimThread->start();
+    // Initialize QTimer inside worker thread context
+    QMetaObject::invokeMethod(stimWorker, "init", Qt::QueuedConnection);
 
     currentSweepPosition = 0;
 
@@ -203,6 +226,12 @@ ControllerInterface::ControllerInterface(SystemState* state_, AbstractRHXControl
 
 ControllerInterface::~ControllerInterface()
 {
+    if (stimThread) {
+        stimThread->quit();
+        stimThread->wait();
+        stimThread = nullptr;
+        stimWorker = nullptr;
+    }
     if (state->running) {
         state->running = false;
     }
@@ -315,7 +344,7 @@ void ControllerInterface::toggleGameThread(bool enabled)
              << "是否为StimRecord:" << (state->getControllerTypeEnum() == ControllerStimRecord);
 
     if (enabled) {
-        // 设置默认运动区域通道（演示模式）
+        // 设置默认运动区域通道（演示模式），仅涉及本地状态，不触碰硬件配置
         qDebug() << "[ControllerInterface] 设置默认运动区域...";
         gameThread->setDefaultMotorRegionsForDemo();
         qDebug() << "[ControllerInterface] 启动游戏线程...";
@@ -353,68 +382,237 @@ void ControllerInterface::setGameExperimentCondition(int condition)
     }
 }
 
+void ControllerInterface::setHitTargetVoltage(double mv)
+{
+    targetHit_mV = mv;
+    if (state->getControllerTypeEnum() == ControllerStimRecord) configureHitStimParams();
+}
+
+void ControllerInterface::setMissTargetVoltage(double mv)
+{
+    targetMiss_mV = mv;
+}
+
+void ControllerInterface::setSensoryTargetVoltage(double mv)
+{
+    targetSensory_mV = mv;
+    if (state->getControllerTypeEnum() == ControllerStimRecord) configureSensoryParams();
+}
+
 void ControllerInterface::handleSensoryStim(int zone)
 {
-    // 示例：将8个区域映射到8个不同的刺激通道
-    // 实际通道名称需要根据硬件配置
-    if (zone < 0 || zone > 7) return;
-    QString channelName = "A-0" + QString::number(8 + zone); // 假设感觉通道为 A-008 到 A-015
-    
-    // 触发一次短暂的双相脉冲
-    // 这里的参数(幅度、持续时间)应根据实验设计调整
-    // setStimChannelParameters(channelName, 1.0, 50); // 50us脉冲
-    // triggerStimChannel(channelName, 10.0); // 10uA幅度
-    // 注意: 实际的刺激函数需要实现
+    if (!stimWorker) return;
+    if (!sensoryConfigured) configureSensoryParams();
+    QMetaObject::invokeMethod(stimWorker, "requestSensory", Qt::QueuedConnection, Q_ARG(int, zone));
 }
 
 void ControllerInterface::handleHitStim()
 {
-    // 成功拦截: 所有感觉电极以100Hz刺激100ms
-    for (int i = 0; i < 8; ++i) {
-        QString channelName = "A-0" + QString::number(8 + i);
-        // setStimChannelParameters(channelName, 100.0, 50); // 100Hz, 50us脉冲
-        // 启用通道的脉冲串模式
-        Channel* channel = state->signalSources->channelByName(channelName);
-        if(channel) {
-            StimParameters* params = channel->stimParameters;
-            params->pulseOrTrain->setIndex(PulseTrain);
-            params->numberOfStimPulses->setValue(10); // 100Hz * 100ms = 10个脉冲
-            params->firstPhaseAmplitude->setValue(15.0); // 15uA幅度
-            uploadStimParameters(channel); // 上传参数
-            setManualStimTrigger(i, true); // 触发脉冲串 (假设手动触发器0-7对应感觉通道)
-            setManualStimTrigger(i, false);
-        }
-    }
+    if (!stimWorker) return;
+    if (!hitStimConfigured) configureHitStimParams();
+    QMetaObject::invokeMethod(stimWorker, "requestHit", Qt::QueuedConnection);
 }
 
 void ControllerInterface::handleMissStim()
 {
-    // 未成功拦截: 5Hz刺激4秒, 150mV
-    // 注意：电压控制需要RHS控制器，这里用电流刺激模拟
-    // 随机选择一个通道进行刺激
-    int zone = rand() % 8;
-    QString channelName = "A-0" + QString::number(8 + zone);
-    
-    // setStimChannelParameters(channelName, 5.0, 100); // 5Hz, 100us脉冲
-    Channel* channel = state->signalSources->channelByName(channelName);
-    if(channel) {
-        StimParameters* params = channel->stimParameters;
-        params->pulseOrTrain->setIndex(PulseTrain);
-        params->numberOfStimPulses->setValue(20); // 5Hz * 4s = 20个脉冲
-        params->firstPhaseAmplitude->setValue(30.0); // 较大电流模拟150mV效果
-        uploadStimParameters(channel);
-        setManualStimTrigger(zone, true);
-        setManualStimTrigger(zone, false);
-    }
+    // Follow the same non-blocking pattern as Hit: do NOT re-upload during acquisition.
+    // Simply schedule a 5 Hz / 4 s series of triggers via StimWorker to avoid halting display.
+    if (!stimWorker) return;
+    QMetaObject::invokeMethod(stimWorker, "requestMiss", Qt::QueuedConnection);
 }
 
 void ControllerInterface::handleStopAllStim()
 {
     // 停止所有感觉通道的刺激
     for (int i = 0; i < 8; ++i) {
-        // QString channelName = QString("A-0%1").arg(8 + i);
+        // QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
         // setStimChannelEnabled(channelName, false);
         // 注意: 实际的停止刺激函数需要实现
+    }
+}
+
+void ControllerInterface::onGameDataUpdated(const GameState& gameState)
+{
+    lastGameState = gameState;
+    haveGameState = true;
+    emit gameDataUpdated(gameState);
+    if (stimWorker) {
+        QMetaObject::invokeMethod(stimWorker, "updateGameState", Qt::QueuedConnection, Q_ARG(int, gameState.ballX));
+    }
+}
+
+void ControllerInterface::handleStartSilentWindow(int durationMs)
+{
+    if (stimWorker) {
+        QMetaObject::invokeMethod(stimWorker, "startSilentWindow", Qt::QueuedConnection, Q_ARG(int, durationMs));
+    }
+}
+
+double ControllerInterface::computeCurrentFromImpedanceUA(const QString& amplifierNativeName, double target_mV) const
+{
+    Channel* amp = state->signalSources->channelByName(amplifierNativeName);
+    if (amp && amp->isImpedanceValid()) {
+        double z_kohm = amp->getImpedanceMagnitude();
+        if (z_kohm > 1e-6) {
+            double iuA = target_mV / z_kohm; // µA = mV / kΩ
+            if (iuA < 0.0) iuA = 0.0;
+            if (iuA > 2000.0) iuA = 2000.0;
+            return iuA;
+        }
+    }
+    double fallback = target_mV / 100.0; // assume 100 kΩ
+    if (fallback < 0.0) fallback = 0.0;
+    if (fallback > 2000.0) fallback = 2000.0;
+    return fallback;
+}
+
+void ControllerInterface::configureHitStimParams()
+{
+    // 预配置感知通道的 Hit 刺激参数，一次性上传，后续只触发
+    for (int i = 0; i < 8; ++i) {
+        QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
+        Channel* channel = state->signalSources->channelByName(channelName);
+        if (!channel) continue;
+        StimParameters* params = channel->stimParameters;
+        // 使能该通道的刺激，并将触发源设置为手动键(F1..F8)
+        params->enabled->setValue(true);
+        params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
+        params->pulseOrTrain->setIndex(PulseTrain);
+        params->numberOfStimPulses->setValue(10); // 100ms at 100Hz
+        params->pulseTrainPeriod->setValue(10000.0); // 10 ms = 100 Hz (us)
+        params->firstPhaseDuration->setValue(100.0); // 100 us
+        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetHit_mV));
+        uploadStimParameters(channel);
+        qDebug() << "[StimConfig-Hit]" << channelName
+                 << "triggerIdx=" << params->triggerSource->getIndex()
+                 << "amp(uA)=" << params->firstPhaseAmplitude->getValue();
+    }
+    hitStimConfigured = true;
+    // Note: USBDataThread sets StimCmdMode at run time; avoid forcing here to prevent side effects.
+}
+
+void ControllerInterface::configureMissStimParams()
+{
+    // 预配置 Miss 刺激参数（示例：5Hz x 4s 等效脉冲数）
+    for (int i = 0; i < 8; ++i) {
+        QString channelName = QString("A-%1").arg(i, 3, 10, QChar('0'));
+        Channel* channel = state->signalSources->channelByName(channelName);
+        if (!channel) continue;
+        StimParameters* params = channel->stimParameters;
+        params->enabled->setValue(true);
+        params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
+        params->pulseOrTrain->setIndex(PulseTrain);
+        params->numberOfStimPulses->setValue(20);         // 5 Hz * 4 s
+        params->pulseTrainPeriod->setValue(200000.0);     // 200 ms = 5 Hz (us)
+        params->firstPhaseDuration->setValue(100.0);      // 100 us
+        params->firstPhaseAmplitude->setValue(1.5);       // uA, ~150 mV @100 kOhm
+        uploadStimParameters(channel);
+    }
+    missStimConfigured = true;
+    // See note above: do not force StimCmdMode here.
+}
+
+void ControllerInterface::configureSensoryParams()
+{
+    // 将 A-000..A-007 配置为单脉冲模式（双相在硬件里配置），幅度与脉宽固定，频率由手动触发节拍决定
+    for (int i = 0; i < 8; ++i) {
+        QString channelName = sensoryChannelNameForZone(i);
+        Channel* channel = state->signalSources->channelByName(channelName);
+        if (!channel) continue;
+        StimParameters* params = channel->stimParameters;
+        params->enabled->setValue(true);
+        params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
+        params->pulseOrTrain->setIndex(SinglePulse);
+        params->firstPhaseDuration->setValue((double) sensoryPulseWidthUs);
+        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetSensory_mV));
+        uploadStimParameters(channel);
+        const int trigIdx = params->triggerSource->getIndex();
+        const double amp = params->firstPhaseAmplitude->getValue();
+        qDebug() << "[StimConfig]" << channelName << "enabled=true"
+                 << "triggerIdx=" << trigIdx << "(" << QString("KeyPressF%1").arg(i+1) << ")"
+                 << "amp(uA)=" << amp << "pw(us)=" << sensoryPulseWidthUs;
+        state->writeToLog(QString("[StimConfig] %1 enabled=true, trigger=KeyPressF%2, amp=%3 uA, pw=%4 us")
+                          .arg(channelName).arg(i + 1).arg(amp, 0, 'f', 3).arg(sensoryPulseWidthUs));
+    }
+    sensoryConfigured = true;
+    // See note above: do not force StimCmdMode here.
+}
+
+void ControllerInterface::onStimWorkerTriggerChannel(int zone)
+{
+    if (zone < 0 || zone > 7) return;
+    state->writeToLog(QString("[StimWorker] trigger zone %1").arg(zone));
+    qDebug() << "[StimWorker] trigger zone" << zone;
+    setManualStimTrigger(zone, true);
+    QTimer::singleShot(3, this, [this, zone]() {
+        setManualStimTrigger(zone, false);
+    });
+}
+
+void ControllerInterface::onStimWorkerHitBurst()
+{
+    for (int i = 0; i < 8; ++i) {
+        setManualStimTrigger(i, true);
+        QTimer::singleShot(3, this, [this, i]() {
+            setManualStimTrigger(i, false);
+        });
+    }
+}
+
+void ControllerInterface::startMissStimSession()
+{
+    // 配置：5 Hz，4 s，总共 20 次；每次随机选择一个通道发一记单脉冲
+    // 将 8 个感觉通道参数切换为单脉冲，较大幅度（missSessionAmplitude_uA）
+    for (int i = 0; i < 8; ++i) {
+        QString channelName = sensoryChannelNameForZone(i);
+        Channel* channel = state->signalSources->channelByName(channelName);
+        if (!channel) continue;
+        StimParameters* params = channel->stimParameters;
+        params->enabled->setValue(true);
+        params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
+        params->pulseOrTrain->setIndex(SinglePulse);
+        params->firstPhaseDuration->setValue((double) sensoryPulseWidthUs);
+        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetMiss_mV));
+        uploadStimParameters(channel);
+    }
+    // See note above: do not force StimCmdMode here.
+
+    missTicksRemaining = 20; // 4 s * 5 Hz
+    if (!missSessionTimer.isActive()) {
+        QObject::connect(&missSessionTimer, &QTimer::timeout, this, &ControllerInterface::onMissStimSessionTick);
+    }
+    missSessionTimer.start(missSessionIntervalMs);
+    missSessionActive = true;
+}
+
+void ControllerInterface::onMissStimSessionTick()
+{
+    if (!missSessionActive) {
+        missSessionTimer.stop();
+        return;
+    }
+
+    int zone = rand() % 8; // 简单随机
+    setManualStimTrigger(zone, true);
+    setManualStimTrigger(zone, false);
+
+    if (--missTicksRemaining <= 0) {
+        missSessionTimer.stop();
+        missSessionActive = false;
+        // 恢复感觉参数（小幅度）
+        if (!sensoryConfigured) configureSensoryParams();
+        else {
+            for (int i = 0; i < 8; ++i) {
+                QString channelName = sensoryChannelNameForZone(i);
+                Channel* channel = state->signalSources->channelByName(channelName);
+                if (!channel) continue;
+                StimParameters* params = channel->stimParameters;
+                params->pulseOrTrain->setIndex(SinglePulse);
+                params->firstPhaseDuration->setValue((double) sensoryPulseWidthUs);
+                params->firstPhaseAmplitude->setValue(sensoryAmplitude_uA);
+                uploadStimParameters(channel);
+            }
+        }
     }
 }
 
@@ -1220,6 +1418,12 @@ void ControllerInterface::updateChipCommandLists(bool updateStimParams)
 
     setDacHighpassFilterEnabled(state->analogOutHighpassFilterEnabled->getValue());
     setDacHighpassFilterFrequency(state->analogOutHighpassFilterFrequency->getValue());
+
+    // 预配置刺激参数，避免首次启用游戏时在运行线程中批量上传参数导致显示停顿。
+    if (state->getControllerTypeEnum() == ControllerStimRecord) {
+        if (!sensoryConfigured) configureSensoryParams();
+        if (!hitStimConfigured) configureHitStimParams();
+    }
 }
 
 void ControllerInterface::runController()
@@ -1229,9 +1433,20 @@ void ControllerInterface::runController()
         return;
     }
 
+    // 方案A：在采集线程启动前，预先配置刺激参数，避免在运行中批量上传导致波形停顿
+    if (state->getControllerTypeEnum() == ControllerStimRecord) {
+        qDebug() << "[ControllerInterface] Pre-configure stim params before acquisition";
+        configureSensoryParams();
+        configureHitStimParams();
+    }
+
     usbDataThread->start();
     waveformProcessorThread->start();
     saveToDiskThread->start();
+
+    // 设置线程优先级（需要在线程启动后设置）
+    usbDataThread->setPriority(QThread::HighPriority);
+    waveformProcessorThread->setPriority(QThread::HighPriority);
 
     usbDataThread->startRunning();
     waveformProcessorThread->startRunning(rhxController->getNumEnabledDataStreams());
@@ -1277,12 +1492,51 @@ void ControllerInterface::runController()
             pipeReadErrorMessage(rhxController->pipeReadError());
         }
 
-        if (state->running && waveformFifo->requestReadNewData(WaveformFifo::ReaderDisplay, numSamples)) {
+        // 测试开关：暂停波形绘制，仅消费FIFO，避免显示读者成为最慢读者
+        const bool pauseWaveformPlotForTest = false;
+
+        bool displayHasData = false;
+        if (state->running) {
+            if (pauseWaveformPlotForTest) {
+                // 使用 lastRead=true 放宽读取条件，防止在写线程受阻时显示读者卡住，无法释放空间。
+                displayHasData = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisplay, numSamples, true);
+            } else {
+                displayHasData = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisplay, numSamples);
+                if (!displayHasData) {
+                    // 回退一次宽松读取，避免显示读者成为“最慢读者”。
+                    displayHasData = waveformFifo->requestReadNewData(WaveformFifo::ReaderDisplay, numSamples, true);
+                }
+            }
+        }
+
+        if (displayHasData) {
             // 在处理数据之前再次检查状态，防止对象在处理过程中被释放
             if (!state || !state->running || !waveformFifo || !display) {
                 qDebug() << "[SAFETY CHECK] Aborting data processing due to invalid state during data processing";
                 break;
             }
+            if (pauseWaveformPlotForTest) {
+                // 直接释放显示读者的数据，避免成为最慢读者卡住写线程。
+                waveformFifo->freeOldData(WaveformFifo::ReaderDisplay);
+
+                // 若未启用音频/网络线程，继续被动排空对应读者，防止其成为“慢读者”。
+                if (!audioThread) {
+                    if (waveformFifo->requestReadNewData(WaveformFifo::ReaderAudio, numSamples)) {
+                        waveformFifo->freeOldData(WaveformFifo::ReaderAudio);
+                    }
+                }
+                if (!tcpDataOutputThread) {
+                    if (waveformFifo->requestReadNewData(WaveformFifo::ReaderTCP, numSamples)) {
+                        waveformFifo->freeOldData(WaveformFifo::ReaderTCP);
+                    }
+                }
+
+                // 维持CPU负载计算的时间基线，下一轮继续。
+                workTimer.restart();
+                loopTimer.restart();
+                continue;
+            }
+
             waveformFifo->copyTimeStamps(WaveformFifo::ReaderDisplay, timeStamps, 0, numSamples);
 
             // Main thread plots data:
@@ -2127,31 +2381,19 @@ void ControllerInterface::setChargeRecoveryParameters(bool mode, RHXRegisters::C
 
 void ControllerInterface::manualStimTriggerPulse(QString keyName)
 {
-    if (keyName.toLower() == "f1") {
-        rhxController->setManualStimTrigger(0, true);
-        rhxController->setManualStimTrigger(0, false);
-    } else if (keyName.toLower() == "f2") {
-        rhxController->setManualStimTrigger(1, true);
-        rhxController->setManualStimTrigger(1, false);
-    } else if (keyName.toLower() == "f3") {
-        rhxController->setManualStimTrigger(2, true);
-        rhxController->setManualStimTrigger(2, false);
-    } else if (keyName.toLower() == "f4") {
-        rhxController->setManualStimTrigger(3, true);
-        rhxController->setManualStimTrigger(3, false);
-    } else if (keyName.toLower() == "f5") {
-        rhxController->setManualStimTrigger(4, true);
-        rhxController->setManualStimTrigger(4, false);
-    } else if (keyName.toLower() == "f6") {
-        rhxController->setManualStimTrigger(5, true);
-        rhxController->setManualStimTrigger(5, false);
-    } else if (keyName.toLower() == "f7") {
-        rhxController->setManualStimTrigger(6, true);
-        rhxController->setManualStimTrigger(6, false);
-    } else if (keyName.toLower() == "f8") {
-        rhxController->setManualStimTrigger(7, true);
-        rhxController->setManualStimTrigger(7, false);
-    }
+    auto pulse = [this](int idx){
+        rhxController->setManualStimTrigger(idx, true);
+        QTimer::singleShot(3, this, [this, idx](){ rhxController->setManualStimTrigger(idx, false); });
+    };
+    QString k = keyName.toLower();
+    if (k == "f1") pulse(0);
+    else if (k == "f2") pulse(1);
+    else if (k == "f3") pulse(2);
+    else if (k == "f4") pulse(3);
+    else if (k == "f5") pulse(4);
+    else if (k == "f6") pulse(5);
+    else if (k == "f7") pulse(6);
+    else if (k == "f8") pulse(7);
 }
 
 void ControllerInterface::pipeReadErrorMessage(int errorID)

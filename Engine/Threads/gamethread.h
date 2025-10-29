@@ -29,9 +29,14 @@
 #include <QThread>
 #include <atomic>
 #include <vector>
+#include <deque>
+#include <optional>
 #include <map>
+#include <unordered_set>
 #include <mutex>
 #include <shared_mutex>
+#include <cstdint>
+#include <chrono>
 #include "waveformfifo.h"
 #include "systemstate.h"
 #include "filter.h"
@@ -57,14 +62,31 @@ struct SpikeEvent {
 
 // 通道处理结构
 struct ChannelProcessor {
+    enum class DataSource {
+        AnalogDC,
+        GpuHighpass,
+        GpuWideband,
+        Invalid
+    };
+
     QString name;
     double sampleRate;                          // 采样率（Hz）
+    DataSource source;                          // 数据来源类型
+    float* analogWaveform;                      // 指向CPU DC波形数据
+    GpuWaveformAddress gpuAddress;              // GPU波形地址（高通或宽带）
+    bool hasSpkDigital;                         // 是否存在GPU尖峰数字波形
+    uint16_t* spkWaveform;                      // 指向GPU尖峰数字波形
+    uint16_t* stimFlagsWaveform;                // 指向刺激标志数字波形 (channel|STIM)
+    bool belongsToUpRegion;                     // 是否属于上移区域
+    bool belongsToDownRegion;                   // 是否属于下移区域
     SecondOrderHighpassFilter* highpassFilter;  // 2nd order Bessel high-pass filter (100Hz)
     FirstOrderLowpassFilter* lowpassFilter;     // 1st order Bessel low-pass filter (1Hz)
     float smoothedAbsValue;                     // 平滑后的绝对值
     float threshold;                            // 当前阈值
     float prevValue;                            // 上一个值，用于检测过零点
     int samplesSinceLastSpike;                  // 自上次尖峰以来的样本数
+    int bucketSpikeCount;                       // 当前桶内累计尖峰数
+    bool stimActive;                            // 当前样本是否处于刺激标志状态
 };
 
 class ControllerInterface; // Forward declaration
@@ -105,6 +127,7 @@ public:
     void setRefractoryPeriod(int samples);
     void setExperimentCondition(ExperimentCondition condition);
     void setMotorRegions(const std::vector<QString>& upChannels, const std::vector<QString>& downChannels);
+    void setSensoryRegionChannels(const std::vector<QString>& sensoryChannels);
     void setDefaultMotorRegionsForDemo();
 
     void setStimChannelEnabled(const QString& channelName, bool enabled);
@@ -126,24 +149,30 @@ signals:
     void gameDataUpdated(const GameState& newState);
     void spikeDetected(const SpikeEvent& spike);
     void spikesPerSecondUpdated(const std::map<QString, float>& spikesPerSecond);
+    // 简化版速率（例如平均Hz），便于跨线程UI显示
+    void spikeRateScalar(float rateHz);
     void statusUpdated(const QString& status);
     void error(const QString& errorMsg);
     void sendHitStim();
     void sendMissStim();
     void stopAllStim();
     void sendSensoryStim(int zone);
+    void startSilentWindow(int durationMs);
+    // 异步请求控制器调制尖峰（避免在游戏线程中直接调用硬件接口导致阻塞）
+    void requestModulateSpikes(int action);
+    // 观测到芯片数据流中的刺激标志
+    void stimObserved(const QString& channelName, uint32_t timeStamp);
 
 private:
     void initializeThreadSafety();
     void initializeChannelProcessors();
     void cleanupChannelProcessors();
     void processSampleBlock(int numSamples);
-    bool detectSpike(ChannelProcessor& processor, float value, int64_t timestamp);
     void applyStimParameters(const QString& channelName);
 
     // Thread-safe helper functions
-    void safeUpdateSpikeCounters(const QString& channelName, int count);
-    std::pair<int, int> safeGetMotorRegionSpikeCounts();
+    void resetBucketState(double sampleRate);
+    std::optional<std::pair<int, int>> consumeCompletedBucketCounts();
     GameState safeGetCurrentGameState() const;
 
     void updateSpikesPerSecond();
@@ -166,6 +195,8 @@ private:
 
     std::vector<ChannelProcessor> channelProcessors;
     std::map<QString, int> channelIndexMap;
+    std::unordered_set<QString> motorUpSet;
+    std::unordered_set<QString> motorDownSet;
 
     // Spike detection parameters
     std::mutex spikeDetectionMutex;
@@ -177,15 +208,31 @@ private:
     std::shared_mutex motorChannelsMutex;
     std::vector<QString> motorRegion1Channels; // Up
     std::vector<QString> motorRegion2Channels; // Down
+    std::vector<QString> sensoryRegionChannels; // Sensory / stimulus region
 
     // Statistics
     mutable std::mutex statsMutex;
+    int samplesPerBucket;
+    int bucketSamplesRemaining;
+    std::deque<std::pair<int, int>> completedBucketDiffs;
+    // Sliding window（基于桶）的区域判定：默认500ms窗口（以桶为单位）
+    std::deque<std::pair<int, int>> decisionWindow; // 近N个桶的(up, down)
+    int bucketsPerDecisionWindow;                   // 决策窗口包含的桶数
+    int windowSumUp;                                // 决策窗口内上区域尖峰和
+    int windowSumDown;                              // 决策窗口内下区域尖峰和
+    int latestBucketSpikeCountUp;
+    int latestBucketSpikeCountDown;
     std::map<QString, int> spikeCounters;
     std::map<QString, float> spikesPerSecond;
     int64_t lastStatsUpdate;
     int totalRallyCount;
     int totalRallyLengthSum;
     float averageRallyLength;
+    int lastSpikeDiff;
+    int spikeDiffLogCounter;
+
+    std::chrono::steady_clock::time_point lastGameStateEmit;
+    std::chrono::milliseconds gameStateUiInterval;
 
     // Stimulation parameters
     std::mutex stimParamsMutex;

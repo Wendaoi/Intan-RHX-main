@@ -82,6 +82,12 @@ DisplayedWaveform DisplayListManager::displayedWaveformFromName(const QString& w
 {
     if (waveName == "/") return waveformDivider();
 
+    // Allow special virtual waveforms that are not actual Channel objects.
+    // Only STIM is truly virtual (no Channel backing). SPK must keep its Channel
+    // so that selection/grouping/color logic works as before.
+    if (waveName.right(5) == "|STIM") {
+        return DisplayedWaveform(waveName, RasterWaveform, nullptr);
+    }
     Channel* channel = state->signalSources->channelByName(waveName);
     if (!channel) return DisplayedWaveform("", UnknownWaveform, nullptr);
     WaveformType waveType = DisplayedWaveform::translateSignalTypeToWaveformType(channel->getSignalType());

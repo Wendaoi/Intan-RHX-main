@@ -98,6 +98,7 @@ SOURCES       = main.cpp \
 		Engine/Threads/audiothread.cpp \
 		Engine/Threads/gamethread.cpp \
 		Engine/Threads/ponggame.cpp \
+		Engine/Threads/stimworker.cpp \
 		Engine/Threads/savetodiskthread.cpp \
 		Engine/Threads/tcpdataoutputthread.cpp \
 		Engine/Threads/usbdatathread.cpp \
@@ -182,6 +183,7 @@ SOURCES       = main.cpp \
 		build/moc_tcpcommunicator.cpp \
 		build/moc_audiothread.cpp \
 		build/moc_gamethread.cpp \
+		build/moc_stimworker.cpp \
 		build/moc_savetodiskthread.cpp \
 		build/moc_tcpdataoutputthread.cpp \
 		build/moc_usbdatathread.cpp \
@@ -295,6 +297,7 @@ OBJECTS       = build/main.o \
 		build/audiothread.o \
 		build/gamethread.o \
 		build/ponggame.o \
+		build/stimworker.o \
 		build/savetodiskthread.o \
 		build/tcpdataoutputthread.o \
 		build/usbdatathread.o \
@@ -380,6 +383,7 @@ OBJECTS       = build/main.o \
 		build/moc_tcpcommunicator.o \
 		build/moc_audiothread.o \
 		build/moc_gamethread.o \
+		build/moc_stimworker.o \
 		build/moc_savetodiskthread.o \
 		build/moc_tcpdataoutputthread.o \
 		build/moc_usbdatathread.o \
@@ -744,6 +748,7 @@ DIST          = kernel.cl \
 		Engine/Threads/audiothread.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/ponggame.h \
+		Engine/Threads/stimworker.h \
 		Engine/Threads/savetodiskthread.h \
 		Engine/Threads/tcpdataoutputthread.h \
 		Engine/Threads/usbdatathread.h \
@@ -862,6 +867,7 @@ DIST          = kernel.cl \
 		Engine/Threads/audiothread.cpp \
 		Engine/Threads/gamethread.cpp \
 		Engine/Threads/ponggame.cpp \
+		Engine/Threads/stimworker.cpp \
 		Engine/Threads/savetodiskthread.cpp \
 		Engine/Threads/tcpdataoutputthread.cpp \
 		Engine/Threads/usbdatathread.cpp \
@@ -1495,8 +1501,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents IntanRHX.qrc $(DISTDIR)/
-	$(COPY_FILE) --parents Engine/API/Synthetic/playbackrhxcontroller.h Engine/API/Synthetic/randomnumber.h Engine/API/Synthetic/synthdatablockgenerator.h Engine/API/Synthetic/syntheticrhxcontroller.h Engine/API/Abstract/abstractrhxcontroller.h Engine/API/Hardware/rhxcontroller.h Engine/API/Hardware/rhxdatablock.h Engine/API/Hardware/rhxglobals.h Engine/API/Hardware/rhxregisters.h Engine/Processing/DataFileReaders/datafile.h Engine/Processing/DataFileReaders/datafilemanager.h Engine/Processing/DataFileReaders/datafilereader.h Engine/Processing/DataFileReaders/fileperchannelmanager.h Engine/Processing/DataFileReaders/filepersignaltypemanager.h Engine/Processing/DataFileReaders/traditionalintanfilemanager.h Engine/Processing/SaveManagers/fileperchannelsavemanager.h Engine/Processing/SaveManagers/filepersignaltypesavemanager.h Engine/Processing/SaveManagers/intanfilesavemanager.h Engine/Processing/SaveManagers/savefile.h Engine/Processing/SaveManagers/savemanager.h Engine/Processing/XPUInterfaces/abstractxpuinterface.h Engine/Processing/XPUInterfaces/cpuinterface.h Engine/Processing/XPUInterfaces/gpuinterface.h Engine/Processing/XPUInterfaces/xpucontroller.h Engine/Processing/channel.h Engine/Processing/commandparser.h Engine/Processing/controllerinterface.h Engine/Processing/datastreamfifo.h Engine/Processing/displayundomanager.h Engine/Processing/fastfouriertransform.h Engine/Processing/filter.h Engine/Processing/matfilewriter.h Engine/Processing/minmax.h Engine/Processing/probemapdatastructures.h Engine/Processing/rhxdatareader.h Engine/Processing/semaphore.h Engine/Processing/signalsources.h Engine/Processing/softwarereferenceprocessor.h Engine/Processing/stateitem.h Engine/Processing/stimparameters.h Engine/Processing/stimparametersclipboard.h Engine/Processing/systemstate.h Engine/Processing/tcpcommunicator.h Engine/Processing/waveformfifo.h Engine/Processing/impedancereader.h Engine/Processing/xmlinterface.h Engine/Threads/audiothread.h Engine/Threads/gamethread.h Engine/Threads/ponggame.h Engine/Threads/savetodiskthread.h Engine/Threads/tcpdataoutputthread.h Engine/Threads/usbdatathread.h Engine/Threads/waveformprocessorthread.h GUI/Dialogs/advancedstartupdialog.h GUI/Dialogs/ampsettledialog.h GUI/Dialogs/analogoutconfigdialog.h GUI/Dialogs/anoutdialog.h GUI/Dialogs/autocolordialog.h GUI/Dialogs/autogroupdialog.h GUI/Dialogs/auxdigoutconfigdialog.h GUI/Dialogs/bandwidthdialog.h GUI/Dialogs/boardselectdialog.h GUI/Dialogs/cabledelaydialog.h GUI/Dialogs/chargerecoverydialog.h GUI/Dialogs/demodialog.h GUI/Dialogs/digoutdialog.h GUI/Dialogs/isidialog.h GUI/Dialogs/keyboardshortcutdialog.h GUI/Dialogs/performanceoptimizationdialog.h GUI/Dialogs/playbackfilepositiondialog.h GUI/Dialogs/psthdialog.h GUI/Dialogs/referenceselectdialog.h GUI/Dialogs/renamechanneldialog.h GUI/Dialogs/scrollablemessageboxdialog.h GUI/Dialogs/setfileformatdialog.h GUI/Dialogs/setthresholdsdialog.h GUI/Dialogs/spectrogramdialog.h GUI/Dialogs/spikesortingdialog.h GUI/Dialogs/startupdialog.h GUI/Dialogs/stimparamdialog.h GUI/Dialogs/triggerrecorddialog.h GUI/Dialogs/waveformselectdialog.h GUI/Widgets/abstractfigure.h GUI/Widgets/abstractpanel.h GUI/Widgets/anoutfigure.h GUI/Widgets/controlpanelaudioanalogtab.h GUI/Widgets/controlpanelbandwidthtab.h GUI/Widgets/controlpanelconfiguretab.h GUI/Widgets/controlpanelimpedancetab.h GUI/Widgets/controlpaneltriggertab.h GUI/Widgets/digfigure.h GUI/Widgets/displayedwaveform.h GUI/Widgets/displaylistmanager.h GUI/Widgets/filterdisplayselector.h GUI/Widgets/filterplot.h GUI/Widgets/impedancegradient.h GUI/Widgets/isiplot.h GUI/Widgets/multicolumndisplay.h GUI/Widgets/multiwaveformplot.h GUI/Widgets/pageview.h GUI/Widgets/plotutilities.h GUI/Widgets/psthplot.h GUI/Widgets/scrollbar.h GUI/Widgets/smartspinbox.h GUI/Widgets/spikegradient.h GUI/Widgets/spikeplot.h GUI/Widgets/statusbars.h GUI/Widgets/stimfigure.h GUI/Widgets/tcpdisplay.h GUI/Widgets/testcontrolpanel.h GUI/Widgets/voltagespinbox.h GUI/Widgets/waveformdisplaycolumn.h GUI/Widgets/waveformdisplaymanager.h GUI/Windows/controlwindow.h GUI/Windows/probemapwindow.h GUI/Dialogs/impedancefreqdialog.h GUI/Widgets/controlpanel.h GUI/Widgets/controlpanelgametab.h GUI/Widgets/ponggamewidget.h GUI/Widgets/spectrogramplot.h GUI/Windows/viewfilterswindow.h Engine/Threads/qlearningagent.h $(DISTDIR)/
-	$(COPY_FILE) --parents main.cpp Engine/API/Synthetic/playbackrhxcontroller.cpp Engine/API/Synthetic/randomnumber.cpp Engine/API/Synthetic/synthdatablockgenerator.cpp Engine/API/Synthetic/syntheticrhxcontroller.cpp Engine/API/Abstract/abstractrhxcontroller.cpp Engine/API/Hardware/rhxcontroller.cpp Engine/API/Hardware/rhxdatablock.cpp Engine/API/Hardware/rhxregisters.cpp Engine/Processing/DataFileReaders/datafile.cpp Engine/Processing/DataFileReaders/datafilemanager.cpp Engine/Processing/DataFileReaders/datafilereader.cpp Engine/Processing/DataFileReaders/fileperchannelmanager.cpp Engine/Processing/DataFileReaders/filepersignaltypemanager.cpp Engine/Processing/DataFileReaders/traditionalintanfilemanager.cpp Engine/Processing/SaveManagers/fileperchannelsavemanager.cpp Engine/Processing/SaveManagers/filepersignaltypesavemanager.cpp Engine/Processing/SaveManagers/intanfilesavemanager.cpp Engine/Processing/SaveManagers/savefile.cpp Engine/Processing/SaveManagers/savemanager.cpp Engine/Processing/XPUInterfaces/abstractxpuinterface.cpp Engine/Processing/XPUInterfaces/cpuinterface.cpp Engine/Processing/XPUInterfaces/gpuinterface.cpp Engine/Processing/XPUInterfaces/xpucontroller.cpp Engine/Processing/channel.cpp Engine/Processing/commandparser.cpp Engine/Processing/controllerinterface.cpp Engine/Processing/datastreamfifo.cpp Engine/Processing/displayundomanager.cpp Engine/Processing/fastfouriertransform.cpp Engine/Processing/filter.cpp Engine/Processing/matfilewriter.cpp Engine/Processing/rhxdatareader.cpp Engine/Processing/signalsources.cpp Engine/Processing/softwarereferenceprocessor.cpp Engine/Processing/stateitem.cpp Engine/Processing/stimparameters.cpp Engine/Processing/stimparametersclipboard.cpp Engine/Processing/systemstate.cpp Engine/Processing/tcpcommunicator.cpp Engine/Processing/waveformfifo.cpp Engine/Processing/impedancereader.cpp Engine/Processing/xmlinterface.cpp Engine/Threads/audiothread.cpp Engine/Threads/gamethread.cpp Engine/Threads/ponggame.cpp Engine/Threads/savetodiskthread.cpp Engine/Threads/tcpdataoutputthread.cpp Engine/Threads/usbdatathread.cpp Engine/Threads/waveformprocessorthread.cpp GUI/Dialogs/advancedstartupdialog.cpp GUI/Dialogs/ampsettledialog.cpp GUI/Dialogs/analogoutconfigdialog.cpp GUI/Dialogs/anoutdialog.cpp GUI/Dialogs/autocolordialog.cpp GUI/Dialogs/autogroupdialog.cpp GUI/Dialogs/auxdigoutconfigdialog.cpp GUI/Dialogs/bandwidthdialog.cpp GUI/Dialogs/boardselectdialog.cpp GUI/Dialogs/cabledelaydialog.cpp GUI/Dialogs/chargerecoverydialog.cpp GUI/Dialogs/demodialog.cpp GUI/Dialogs/digoutdialog.cpp GUI/Dialogs/isidialog.cpp GUI/Dialogs/keyboardshortcutdialog.cpp GUI/Dialogs/performanceoptimizationdialog.cpp GUI/Dialogs/playbackfilepositiondialog.cpp GUI/Dialogs/psthdialog.cpp GUI/Dialogs/referenceselectdialog.cpp GUI/Dialogs/renamechanneldialog.cpp GUI/Dialogs/scrollablemessageboxdialog.cpp GUI/Dialogs/setfileformatdialog.cpp GUI/Dialogs/setthresholdsdialog.cpp GUI/Dialogs/spectrogramdialog.cpp GUI/Dialogs/spikesortingdialog.cpp GUI/Dialogs/startupdialog.cpp GUI/Dialogs/stimparamdialog.cpp GUI/Dialogs/triggerrecorddialog.cpp GUI/Dialogs/waveformselectdialog.cpp GUI/Widgets/abstractfigure.cpp GUI/Widgets/abstractpanel.cpp GUI/Widgets/anoutfigure.cpp GUI/Widgets/controlpanelaudioanalogtab.cpp GUI/Widgets/controlpanelbandwidthtab.cpp GUI/Widgets/controlpanelconfiguretab.cpp GUI/Widgets/controlpanelimpedancetab.cpp GUI/Widgets/controlpaneltriggertab.cpp GUI/Widgets/digfigure.cpp GUI/Widgets/displayedwaveform.cpp GUI/Widgets/displaylistmanager.cpp GUI/Widgets/filterdisplayselector.cpp GUI/Widgets/filterplot.cpp GUI/Widgets/impedancegradient.cpp GUI/Widgets/isiplot.cpp GUI/Widgets/multicolumndisplay.cpp GUI/Widgets/multiwaveformplot.cpp GUI/Widgets/pageview.cpp GUI/Widgets/plotutilities.cpp GUI/Widgets/psthplot.cpp GUI/Widgets/scrollbar.cpp GUI/Widgets/smartspinbox.cpp GUI/Widgets/spikegradient.cpp GUI/Widgets/spikeplot.cpp GUI/Widgets/statusbars.cpp GUI/Widgets/stimfigure.cpp GUI/Widgets/tcpdisplay.cpp GUI/Widgets/testcontrolpanel.cpp GUI/Widgets/voltagespinbox.cpp GUI/Widgets/waveformdisplaycolumn.cpp GUI/Widgets/waveformdisplaymanager.cpp GUI/Windows/controlwindow.cpp GUI/Windows/probemapwindow.cpp GUI/Dialogs/impedancefreqdialog.cpp GUI/Widgets/controlpanel.cpp GUI/Widgets/controlpanelgametab.cpp GUI/Widgets/ponggamewidget.cpp GUI/Widgets/spectrogramplot.cpp GUI/Windows/viewfilterswindow.cpp Engine/Threads/qlearningagent.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents Engine/API/Synthetic/playbackrhxcontroller.h Engine/API/Synthetic/randomnumber.h Engine/API/Synthetic/synthdatablockgenerator.h Engine/API/Synthetic/syntheticrhxcontroller.h Engine/API/Abstract/abstractrhxcontroller.h Engine/API/Hardware/rhxcontroller.h Engine/API/Hardware/rhxdatablock.h Engine/API/Hardware/rhxglobals.h Engine/API/Hardware/rhxregisters.h Engine/Processing/DataFileReaders/datafile.h Engine/Processing/DataFileReaders/datafilemanager.h Engine/Processing/DataFileReaders/datafilereader.h Engine/Processing/DataFileReaders/fileperchannelmanager.h Engine/Processing/DataFileReaders/filepersignaltypemanager.h Engine/Processing/DataFileReaders/traditionalintanfilemanager.h Engine/Processing/SaveManagers/fileperchannelsavemanager.h Engine/Processing/SaveManagers/filepersignaltypesavemanager.h Engine/Processing/SaveManagers/intanfilesavemanager.h Engine/Processing/SaveManagers/savefile.h Engine/Processing/SaveManagers/savemanager.h Engine/Processing/XPUInterfaces/abstractxpuinterface.h Engine/Processing/XPUInterfaces/cpuinterface.h Engine/Processing/XPUInterfaces/gpuinterface.h Engine/Processing/XPUInterfaces/xpucontroller.h Engine/Processing/channel.h Engine/Processing/commandparser.h Engine/Processing/controllerinterface.h Engine/Processing/datastreamfifo.h Engine/Processing/displayundomanager.h Engine/Processing/fastfouriertransform.h Engine/Processing/filter.h Engine/Processing/matfilewriter.h Engine/Processing/minmax.h Engine/Processing/probemapdatastructures.h Engine/Processing/rhxdatareader.h Engine/Processing/semaphore.h Engine/Processing/signalsources.h Engine/Processing/softwarereferenceprocessor.h Engine/Processing/stateitem.h Engine/Processing/stimparameters.h Engine/Processing/stimparametersclipboard.h Engine/Processing/systemstate.h Engine/Processing/tcpcommunicator.h Engine/Processing/waveformfifo.h Engine/Processing/impedancereader.h Engine/Processing/xmlinterface.h Engine/Threads/audiothread.h Engine/Threads/gamethread.h Engine/Threads/ponggame.h Engine/Threads/stimworker.h Engine/Threads/savetodiskthread.h Engine/Threads/tcpdataoutputthread.h Engine/Threads/usbdatathread.h Engine/Threads/waveformprocessorthread.h GUI/Dialogs/advancedstartupdialog.h GUI/Dialogs/ampsettledialog.h GUI/Dialogs/analogoutconfigdialog.h GUI/Dialogs/anoutdialog.h GUI/Dialogs/autocolordialog.h GUI/Dialogs/autogroupdialog.h GUI/Dialogs/auxdigoutconfigdialog.h GUI/Dialogs/bandwidthdialog.h GUI/Dialogs/boardselectdialog.h GUI/Dialogs/cabledelaydialog.h GUI/Dialogs/chargerecoverydialog.h GUI/Dialogs/demodialog.h GUI/Dialogs/digoutdialog.h GUI/Dialogs/isidialog.h GUI/Dialogs/keyboardshortcutdialog.h GUI/Dialogs/performanceoptimizationdialog.h GUI/Dialogs/playbackfilepositiondialog.h GUI/Dialogs/psthdialog.h GUI/Dialogs/referenceselectdialog.h GUI/Dialogs/renamechanneldialog.h GUI/Dialogs/scrollablemessageboxdialog.h GUI/Dialogs/setfileformatdialog.h GUI/Dialogs/setthresholdsdialog.h GUI/Dialogs/spectrogramdialog.h GUI/Dialogs/spikesortingdialog.h GUI/Dialogs/startupdialog.h GUI/Dialogs/stimparamdialog.h GUI/Dialogs/triggerrecorddialog.h GUI/Dialogs/waveformselectdialog.h GUI/Widgets/abstractfigure.h GUI/Widgets/abstractpanel.h GUI/Widgets/anoutfigure.h GUI/Widgets/controlpanelaudioanalogtab.h GUI/Widgets/controlpanelbandwidthtab.h GUI/Widgets/controlpanelconfiguretab.h GUI/Widgets/controlpanelimpedancetab.h GUI/Widgets/controlpaneltriggertab.h GUI/Widgets/digfigure.h GUI/Widgets/displayedwaveform.h GUI/Widgets/displaylistmanager.h GUI/Widgets/filterdisplayselector.h GUI/Widgets/filterplot.h GUI/Widgets/impedancegradient.h GUI/Widgets/isiplot.h GUI/Widgets/multicolumndisplay.h GUI/Widgets/multiwaveformplot.h GUI/Widgets/pageview.h GUI/Widgets/plotutilities.h GUI/Widgets/psthplot.h GUI/Widgets/scrollbar.h GUI/Widgets/smartspinbox.h GUI/Widgets/spikegradient.h GUI/Widgets/spikeplot.h GUI/Widgets/statusbars.h GUI/Widgets/stimfigure.h GUI/Widgets/tcpdisplay.h GUI/Widgets/testcontrolpanel.h GUI/Widgets/voltagespinbox.h GUI/Widgets/waveformdisplaycolumn.h GUI/Widgets/waveformdisplaymanager.h GUI/Windows/controlwindow.h GUI/Windows/probemapwindow.h GUI/Dialogs/impedancefreqdialog.h GUI/Widgets/controlpanel.h GUI/Widgets/controlpanelgametab.h GUI/Widgets/ponggamewidget.h GUI/Widgets/spectrogramplot.h GUI/Windows/viewfilterswindow.h Engine/Threads/qlearningagent.h $(DISTDIR)/
+	$(COPY_FILE) --parents main.cpp Engine/API/Synthetic/playbackrhxcontroller.cpp Engine/API/Synthetic/randomnumber.cpp Engine/API/Synthetic/synthdatablockgenerator.cpp Engine/API/Synthetic/syntheticrhxcontroller.cpp Engine/API/Abstract/abstractrhxcontroller.cpp Engine/API/Hardware/rhxcontroller.cpp Engine/API/Hardware/rhxdatablock.cpp Engine/API/Hardware/rhxregisters.cpp Engine/Processing/DataFileReaders/datafile.cpp Engine/Processing/DataFileReaders/datafilemanager.cpp Engine/Processing/DataFileReaders/datafilereader.cpp Engine/Processing/DataFileReaders/fileperchannelmanager.cpp Engine/Processing/DataFileReaders/filepersignaltypemanager.cpp Engine/Processing/DataFileReaders/traditionalintanfilemanager.cpp Engine/Processing/SaveManagers/fileperchannelsavemanager.cpp Engine/Processing/SaveManagers/filepersignaltypesavemanager.cpp Engine/Processing/SaveManagers/intanfilesavemanager.cpp Engine/Processing/SaveManagers/savefile.cpp Engine/Processing/SaveManagers/savemanager.cpp Engine/Processing/XPUInterfaces/abstractxpuinterface.cpp Engine/Processing/XPUInterfaces/cpuinterface.cpp Engine/Processing/XPUInterfaces/gpuinterface.cpp Engine/Processing/XPUInterfaces/xpucontroller.cpp Engine/Processing/channel.cpp Engine/Processing/commandparser.cpp Engine/Processing/controllerinterface.cpp Engine/Processing/datastreamfifo.cpp Engine/Processing/displayundomanager.cpp Engine/Processing/fastfouriertransform.cpp Engine/Processing/filter.cpp Engine/Processing/matfilewriter.cpp Engine/Processing/rhxdatareader.cpp Engine/Processing/signalsources.cpp Engine/Processing/softwarereferenceprocessor.cpp Engine/Processing/stateitem.cpp Engine/Processing/stimparameters.cpp Engine/Processing/stimparametersclipboard.cpp Engine/Processing/systemstate.cpp Engine/Processing/tcpcommunicator.cpp Engine/Processing/waveformfifo.cpp Engine/Processing/impedancereader.cpp Engine/Processing/xmlinterface.cpp Engine/Threads/audiothread.cpp Engine/Threads/gamethread.cpp Engine/Threads/ponggame.cpp Engine/Threads/stimworker.cpp Engine/Threads/savetodiskthread.cpp Engine/Threads/tcpdataoutputthread.cpp Engine/Threads/usbdatathread.cpp Engine/Threads/waveformprocessorthread.cpp GUI/Dialogs/advancedstartupdialog.cpp GUI/Dialogs/ampsettledialog.cpp GUI/Dialogs/analogoutconfigdialog.cpp GUI/Dialogs/anoutdialog.cpp GUI/Dialogs/autocolordialog.cpp GUI/Dialogs/autogroupdialog.cpp GUI/Dialogs/auxdigoutconfigdialog.cpp GUI/Dialogs/bandwidthdialog.cpp GUI/Dialogs/boardselectdialog.cpp GUI/Dialogs/cabledelaydialog.cpp GUI/Dialogs/chargerecoverydialog.cpp GUI/Dialogs/demodialog.cpp GUI/Dialogs/digoutdialog.cpp GUI/Dialogs/isidialog.cpp GUI/Dialogs/keyboardshortcutdialog.cpp GUI/Dialogs/performanceoptimizationdialog.cpp GUI/Dialogs/playbackfilepositiondialog.cpp GUI/Dialogs/psthdialog.cpp GUI/Dialogs/referenceselectdialog.cpp GUI/Dialogs/renamechanneldialog.cpp GUI/Dialogs/scrollablemessageboxdialog.cpp GUI/Dialogs/setfileformatdialog.cpp GUI/Dialogs/setthresholdsdialog.cpp GUI/Dialogs/spectrogramdialog.cpp GUI/Dialogs/spikesortingdialog.cpp GUI/Dialogs/startupdialog.cpp GUI/Dialogs/stimparamdialog.cpp GUI/Dialogs/triggerrecorddialog.cpp GUI/Dialogs/waveformselectdialog.cpp GUI/Widgets/abstractfigure.cpp GUI/Widgets/abstractpanel.cpp GUI/Widgets/anoutfigure.cpp GUI/Widgets/controlpanelaudioanalogtab.cpp GUI/Widgets/controlpanelbandwidthtab.cpp GUI/Widgets/controlpanelconfiguretab.cpp GUI/Widgets/controlpanelimpedancetab.cpp GUI/Widgets/controlpaneltriggertab.cpp GUI/Widgets/digfigure.cpp GUI/Widgets/displayedwaveform.cpp GUI/Widgets/displaylistmanager.cpp GUI/Widgets/filterdisplayselector.cpp GUI/Widgets/filterplot.cpp GUI/Widgets/impedancegradient.cpp GUI/Widgets/isiplot.cpp GUI/Widgets/multicolumndisplay.cpp GUI/Widgets/multiwaveformplot.cpp GUI/Widgets/pageview.cpp GUI/Widgets/plotutilities.cpp GUI/Widgets/psthplot.cpp GUI/Widgets/scrollbar.cpp GUI/Widgets/smartspinbox.cpp GUI/Widgets/spikegradient.cpp GUI/Widgets/spikeplot.cpp GUI/Widgets/statusbars.cpp GUI/Widgets/stimfigure.cpp GUI/Widgets/tcpdisplay.cpp GUI/Widgets/testcontrolpanel.cpp GUI/Widgets/voltagespinbox.cpp GUI/Widgets/waveformdisplaycolumn.cpp GUI/Widgets/waveformdisplaymanager.cpp GUI/Windows/controlwindow.cpp GUI/Windows/probemapwindow.cpp GUI/Dialogs/impedancefreqdialog.cpp GUI/Widgets/controlpanel.cpp GUI/Widgets/controlpanelgametab.cpp GUI/Widgets/ponggamewidget.cpp GUI/Widgets/spectrogramplot.cpp GUI/Windows/viewfilterswindow.cpp Engine/Threads/qlearningagent.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1586,10 +1592,10 @@ build/qrc_IntanRHX.cpp: IntanRHX.qrc \
 		images/scroll_down_badge.png
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/rcc -name IntanRHX --no-zstd IntanRHX.qrc -o build/qrc_IntanRHX.cpp
 
-compiler_moc_header_make_all: build/moc_datafilereader.cpp build/moc_abstractxpuinterface.cpp build/moc_cpuinterface.cpp build/moc_gpuinterface.cpp build/moc_xpucontroller.cpp build/moc_commandparser.cpp build/moc_controllerinterface.cpp build/moc_systemstate.cpp build/moc_tcpcommunicator.cpp build/moc_audiothread.cpp build/moc_gamethread.cpp build/moc_savetodiskthread.cpp build/moc_tcpdataoutputthread.cpp build/moc_usbdatathread.cpp build/moc_waveformprocessorthread.cpp build/moc_advancedstartupdialog.cpp build/moc_ampsettledialog.cpp build/moc_analogoutconfigdialog.cpp build/moc_anoutdialog.cpp build/moc_autocolordialog.cpp build/moc_autogroupdialog.cpp build/moc_auxdigoutconfigdialog.cpp build/moc_bandwidthdialog.cpp build/moc_boardselectdialog.cpp build/moc_cabledelaydialog.cpp build/moc_chargerecoverydialog.cpp build/moc_demodialog.cpp build/moc_digoutdialog.cpp build/moc_isidialog.cpp build/moc_keyboardshortcutdialog.cpp build/moc_performanceoptimizationdialog.cpp build/moc_playbackfilepositiondialog.cpp build/moc_psthdialog.cpp build/moc_referenceselectdialog.cpp build/moc_renamechanneldialog.cpp build/moc_scrollablemessageboxdialog.cpp build/moc_setfileformatdialog.cpp build/moc_setthresholdsdialog.cpp build/moc_spectrogramdialog.cpp build/moc_spikesortingdialog.cpp build/moc_startupdialog.cpp build/moc_stimparamdialog.cpp build/moc_triggerrecorddialog.cpp build/moc_waveformselectdialog.cpp build/moc_abstractfigure.cpp build/moc_abstractpanel.cpp build/moc_anoutfigure.cpp build/moc_controlpanelaudioanalogtab.cpp build/moc_controlpanelbandwidthtab.cpp build/moc_controlpanelconfiguretab.cpp build/moc_controlpanelimpedancetab.cpp build/moc_controlpaneltriggertab.cpp build/moc_digfigure.cpp build/moc_filterdisplayselector.cpp build/moc_filterplot.cpp build/moc_impedancegradient.cpp build/moc_isiplot.cpp build/moc_multicolumndisplay.cpp build/moc_multiwaveformplot.cpp build/moc_pageview.cpp build/moc_psthplot.cpp build/moc_smartspinbox.cpp build/moc_spikegradient.cpp build/moc_spikeplot.cpp build/moc_statusbars.cpp build/moc_stimfigure.cpp build/moc_tcpdisplay.cpp build/moc_testcontrolpanel.cpp build/moc_voltagespinbox.cpp build/moc_waveformdisplaycolumn.cpp build/moc_controlwindow.cpp build/moc_probemapwindow.cpp build/moc_impedancefreqdialog.cpp build/moc_controlpanel.cpp build/moc_controlpanelgametab.cpp build/moc_ponggamewidget.cpp build/moc_spectrogramplot.cpp build/moc_viewfilterswindow.cpp
+compiler_moc_header_make_all: build/moc_datafilereader.cpp build/moc_abstractxpuinterface.cpp build/moc_cpuinterface.cpp build/moc_gpuinterface.cpp build/moc_xpucontroller.cpp build/moc_commandparser.cpp build/moc_controllerinterface.cpp build/moc_systemstate.cpp build/moc_tcpcommunicator.cpp build/moc_audiothread.cpp build/moc_gamethread.cpp build/moc_stimworker.cpp build/moc_savetodiskthread.cpp build/moc_tcpdataoutputthread.cpp build/moc_usbdatathread.cpp build/moc_waveformprocessorthread.cpp build/moc_advancedstartupdialog.cpp build/moc_ampsettledialog.cpp build/moc_analogoutconfigdialog.cpp build/moc_anoutdialog.cpp build/moc_autocolordialog.cpp build/moc_autogroupdialog.cpp build/moc_auxdigoutconfigdialog.cpp build/moc_bandwidthdialog.cpp build/moc_boardselectdialog.cpp build/moc_cabledelaydialog.cpp build/moc_chargerecoverydialog.cpp build/moc_demodialog.cpp build/moc_digoutdialog.cpp build/moc_isidialog.cpp build/moc_keyboardshortcutdialog.cpp build/moc_performanceoptimizationdialog.cpp build/moc_playbackfilepositiondialog.cpp build/moc_psthdialog.cpp build/moc_referenceselectdialog.cpp build/moc_renamechanneldialog.cpp build/moc_scrollablemessageboxdialog.cpp build/moc_setfileformatdialog.cpp build/moc_setthresholdsdialog.cpp build/moc_spectrogramdialog.cpp build/moc_spikesortingdialog.cpp build/moc_startupdialog.cpp build/moc_stimparamdialog.cpp build/moc_triggerrecorddialog.cpp build/moc_waveformselectdialog.cpp build/moc_abstractfigure.cpp build/moc_abstractpanel.cpp build/moc_anoutfigure.cpp build/moc_controlpanelaudioanalogtab.cpp build/moc_controlpanelbandwidthtab.cpp build/moc_controlpanelconfiguretab.cpp build/moc_controlpanelimpedancetab.cpp build/moc_controlpaneltriggertab.cpp build/moc_digfigure.cpp build/moc_filterdisplayselector.cpp build/moc_filterplot.cpp build/moc_impedancegradient.cpp build/moc_isiplot.cpp build/moc_multicolumndisplay.cpp build/moc_multiwaveformplot.cpp build/moc_pageview.cpp build/moc_psthplot.cpp build/moc_smartspinbox.cpp build/moc_spikegradient.cpp build/moc_spikeplot.cpp build/moc_statusbars.cpp build/moc_stimfigure.cpp build/moc_tcpdisplay.cpp build/moc_testcontrolpanel.cpp build/moc_voltagespinbox.cpp build/moc_waveformdisplaycolumn.cpp build/moc_controlwindow.cpp build/moc_probemapwindow.cpp build/moc_impedancefreqdialog.cpp build/moc_controlpanel.cpp build/moc_controlpanelgametab.cpp build/moc_ponggamewidget.cpp build/moc_spectrogramplot.cpp build/moc_viewfilterswindow.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) build/moc_datafilereader.cpp build/moc_abstractxpuinterface.cpp build/moc_cpuinterface.cpp build/moc_gpuinterface.cpp build/moc_xpucontroller.cpp build/moc_commandparser.cpp build/moc_controllerinterface.cpp build/moc_systemstate.cpp build/moc_tcpcommunicator.cpp build/moc_audiothread.cpp build/moc_gamethread.cpp build/moc_savetodiskthread.cpp build/moc_tcpdataoutputthread.cpp build/moc_usbdatathread.cpp build/moc_waveformprocessorthread.cpp build/moc_advancedstartupdialog.cpp build/moc_ampsettledialog.cpp build/moc_analogoutconfigdialog.cpp build/moc_anoutdialog.cpp build/moc_autocolordialog.cpp build/moc_autogroupdialog.cpp build/moc_auxdigoutconfigdialog.cpp build/moc_bandwidthdialog.cpp build/moc_boardselectdialog.cpp build/moc_cabledelaydialog.cpp build/moc_chargerecoverydialog.cpp build/moc_demodialog.cpp build/moc_digoutdialog.cpp build/moc_isidialog.cpp build/moc_keyboardshortcutdialog.cpp build/moc_performanceoptimizationdialog.cpp build/moc_playbackfilepositiondialog.cpp build/moc_psthdialog.cpp build/moc_referenceselectdialog.cpp build/moc_renamechanneldialog.cpp build/moc_scrollablemessageboxdialog.cpp build/moc_setfileformatdialog.cpp build/moc_setthresholdsdialog.cpp build/moc_spectrogramdialog.cpp build/moc_spikesortingdialog.cpp build/moc_startupdialog.cpp build/moc_stimparamdialog.cpp build/moc_triggerrecorddialog.cpp build/moc_waveformselectdialog.cpp build/moc_abstractfigure.cpp build/moc_abstractpanel.cpp build/moc_anoutfigure.cpp build/moc_controlpanelaudioanalogtab.cpp build/moc_controlpanelbandwidthtab.cpp build/moc_controlpanelconfiguretab.cpp build/moc_controlpanelimpedancetab.cpp build/moc_controlpaneltriggertab.cpp build/moc_digfigure.cpp build/moc_filterdisplayselector.cpp build/moc_filterplot.cpp build/moc_impedancegradient.cpp build/moc_isiplot.cpp build/moc_multicolumndisplay.cpp build/moc_multiwaveformplot.cpp build/moc_pageview.cpp build/moc_psthplot.cpp build/moc_smartspinbox.cpp build/moc_spikegradient.cpp build/moc_spikeplot.cpp build/moc_statusbars.cpp
-	-$(DEL_FILE) build/moc_stimfigure.cpp build/moc_tcpdisplay.cpp build/moc_testcontrolpanel.cpp build/moc_voltagespinbox.cpp build/moc_waveformdisplaycolumn.cpp build/moc_controlwindow.cpp build/moc_probemapwindow.cpp build/moc_impedancefreqdialog.cpp build/moc_controlpanel.cpp build/moc_controlpanelgametab.cpp build/moc_ponggamewidget.cpp build/moc_spectrogramplot.cpp build/moc_viewfilterswindow.cpp
+	-$(DEL_FILE) build/moc_datafilereader.cpp build/moc_abstractxpuinterface.cpp build/moc_cpuinterface.cpp build/moc_gpuinterface.cpp build/moc_xpucontroller.cpp build/moc_commandparser.cpp build/moc_controllerinterface.cpp build/moc_systemstate.cpp build/moc_tcpcommunicator.cpp build/moc_audiothread.cpp build/moc_gamethread.cpp build/moc_stimworker.cpp build/moc_savetodiskthread.cpp build/moc_tcpdataoutputthread.cpp build/moc_usbdatathread.cpp build/moc_waveformprocessorthread.cpp build/moc_advancedstartupdialog.cpp build/moc_ampsettledialog.cpp build/moc_analogoutconfigdialog.cpp build/moc_anoutdialog.cpp build/moc_autocolordialog.cpp build/moc_autogroupdialog.cpp build/moc_auxdigoutconfigdialog.cpp build/moc_bandwidthdialog.cpp build/moc_boardselectdialog.cpp build/moc_cabledelaydialog.cpp build/moc_chargerecoverydialog.cpp build/moc_demodialog.cpp build/moc_digoutdialog.cpp build/moc_isidialog.cpp build/moc_keyboardshortcutdialog.cpp build/moc_performanceoptimizationdialog.cpp build/moc_playbackfilepositiondialog.cpp build/moc_psthdialog.cpp build/moc_referenceselectdialog.cpp build/moc_renamechanneldialog.cpp build/moc_scrollablemessageboxdialog.cpp build/moc_setfileformatdialog.cpp build/moc_setthresholdsdialog.cpp build/moc_spectrogramdialog.cpp build/moc_spikesortingdialog.cpp build/moc_startupdialog.cpp build/moc_stimparamdialog.cpp build/moc_triggerrecorddialog.cpp build/moc_waveformselectdialog.cpp build/moc_abstractfigure.cpp build/moc_abstractpanel.cpp build/moc_anoutfigure.cpp build/moc_controlpanelaudioanalogtab.cpp build/moc_controlpanelbandwidthtab.cpp build/moc_controlpanelconfiguretab.cpp build/moc_controlpanelimpedancetab.cpp build/moc_controlpaneltriggertab.cpp build/moc_digfigure.cpp build/moc_filterdisplayselector.cpp build/moc_filterplot.cpp build/moc_impedancegradient.cpp build/moc_isiplot.cpp build/moc_multicolumndisplay.cpp build/moc_multiwaveformplot.cpp build/moc_pageview.cpp build/moc_psthplot.cpp build/moc_smartspinbox.cpp build/moc_spikegradient.cpp build/moc_spikeplot.cpp
+	-$(DEL_FILE) build/moc_statusbars.cpp build/moc_stimfigure.cpp build/moc_tcpdisplay.cpp build/moc_testcontrolpanel.cpp build/moc_voltagespinbox.cpp build/moc_waveformdisplaycolumn.cpp build/moc_controlwindow.cpp build/moc_probemapwindow.cpp build/moc_impedancefreqdialog.cpp build/moc_controlpanel.cpp build/moc_controlpanelgametab.cpp build/moc_ponggamewidget.cpp build/moc_spectrogramplot.cpp build/moc_viewfilterswindow.cpp
 build/moc_datafilereader.cpp: Engine/Processing/DataFileReaders/datafilereader.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
@@ -2446,6 +2452,12 @@ build/moc_commandparser.cpp: Engine/Processing/commandparser.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/qwizard.h \
 		Engine/Processing/impedancereader.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -2453,8 +2465,6 @@ build/moc_commandparser.cpp: Engine/Processing/commandparser.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -2497,6 +2507,9 @@ build/moc_commandparser.cpp: Engine/Processing/commandparser.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib Engine/Processing/commandparser.h -o build/moc_commandparser.cpp
 
@@ -2505,6 +2518,12 @@ build/moc_controllerinterface.cpp: Engine/Processing/controllerinterface.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -2708,8 +2727,6 @@ build/moc_controllerinterface.cpp: Engine/Processing/controllerinterface.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -2753,6 +2770,9 @@ build/moc_controllerinterface.cpp: Engine/Processing/controllerinterface.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib Engine/Processing/controllerinterface.h -o build/moc_controllerinterface.cpp
 
@@ -3313,6 +3333,18 @@ build/moc_gamethread.cpp: Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib Engine/Threads/gamethread.h -o build/moc_gamethread.cpp
+
+build/moc_stimworker.cpp: Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
+		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
+	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib Engine/Threads/stimworker.h -o build/moc_stimworker.cpp
 
 build/moc_savetodiskthread.cpp: Engine/Threads/savetodiskthread.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
@@ -3995,6 +4027,12 @@ build/moc_analogoutconfigdialog.cpp: GUI/Dialogs/analogoutconfigdialog.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -4197,8 +4235,6 @@ build/moc_analogoutconfigdialog.cpp: GUI/Dialogs/analogoutconfigdialog.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -4241,6 +4277,9 @@ build/moc_analogoutconfigdialog.cpp: GUI/Dialogs/analogoutconfigdialog.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib GUI/Dialogs/analogoutconfigdialog.h -o build/moc_analogoutconfigdialog.cpp
 
@@ -4682,6 +4721,12 @@ build/moc_boardselectdialog.cpp: GUI/Dialogs/boardselectdialog.h \
 		includes/CL/cl.h \
 		includes/CL/cl_platform.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
 		Engine/Processing/signalsources.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers/QColor \
@@ -4808,8 +4853,6 @@ build/moc_boardselectdialog.cpp: GUI/Dialogs/boardselectdialog.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -4852,6 +4895,9 @@ build/moc_boardselectdialog.cpp: GUI/Dialogs/boardselectdialog.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Windows/controlwindow.h \
@@ -4876,8 +4922,6 @@ build/moc_boardselectdialog.cpp: GUI/Dialogs/boardselectdialog.h \
 		Engine/API/Synthetic/syntheticrhxcontroller.h \
 		Engine/API/Synthetic/synthdatablockgenerator.h \
 		Engine/API/Synthetic/randomnumber.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
 		Engine/API/Synthetic/playbackrhxcontroller.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib GUI/Dialogs/boardselectdialog.h -o build/moc_boardselectdialog.cpp
@@ -7314,6 +7358,12 @@ build/moc_abstractpanel.cpp: GUI/Widgets/abstractpanel.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -7394,8 +7444,6 @@ build/moc_abstractpanel.cpp: GUI/Widgets/abstractpanel.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -7439,6 +7487,9 @@ build/moc_abstractpanel.cpp: GUI/Widgets/abstractpanel.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/filterdisplayselector.h \
@@ -7654,6 +7705,12 @@ build/moc_controlpanelaudioanalogtab.cpp: GUI/Widgets/controlpanelaudioanalogtab
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -7734,8 +7791,6 @@ build/moc_controlpanelaudioanalogtab.cpp: GUI/Widgets/controlpanelaudioanalogtab
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -7779,6 +7834,9 @@ build/moc_controlpanelaudioanalogtab.cpp: GUI/Widgets/controlpanelaudioanalogtab
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib GUI/Widgets/controlpanelaudioanalogtab.h -o build/moc_controlpanelaudioanalogtab.cpp
 
@@ -7911,6 +7969,12 @@ build/moc_controlpanelbandwidthtab.cpp: GUI/Widgets/controlpanelbandwidthtab.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -7991,8 +8055,6 @@ build/moc_controlpanelbandwidthtab.cpp: GUI/Widgets/controlpanelbandwidthtab.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -8036,6 +8098,9 @@ build/moc_controlpanelbandwidthtab.cpp: GUI/Widgets/controlpanelbandwidthtab.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Windows/viewfilterswindow.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QMainWindow \
 		GUI/Widgets/filterplot.h \
@@ -8171,6 +8236,12 @@ build/moc_controlpanelconfiguretab.cpp: GUI/Widgets/controlpanelconfiguretab.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -8251,8 +8322,6 @@ build/moc_controlpanelconfiguretab.cpp: GUI/Widgets/controlpanelconfiguretab.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -8296,6 +8365,9 @@ build/moc_controlpanelconfiguretab.cpp: GUI/Widgets/controlpanelconfiguretab.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
@@ -8430,6 +8502,12 @@ build/moc_controlpanelimpedancetab.cpp: GUI/Widgets/controlpanelimpedancetab.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -8510,8 +8588,6 @@ build/moc_controlpanelimpedancetab.cpp: GUI/Widgets/controlpanelimpedancetab.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -8555,6 +8631,9 @@ build/moc_controlpanelimpedancetab.cpp: GUI/Widgets/controlpanelimpedancetab.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
@@ -8689,6 +8768,12 @@ build/moc_controlpaneltriggertab.cpp: GUI/Widgets/controlpaneltriggertab.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -8769,8 +8854,6 @@ build/moc_controlpaneltriggertab.cpp: GUI/Widgets/controlpaneltriggertab.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -8814,6 +8897,9 @@ build/moc_controlpaneltriggertab.cpp: GUI/Widgets/controlpaneltriggertab.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib GUI/Widgets/controlpaneltriggertab.h -o build/moc_controlpaneltriggertab.cpp
 
@@ -11430,6 +11516,12 @@ build/moc_testcontrolpanel.cpp: GUI/Widgets/testcontrolpanel.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -11510,8 +11602,6 @@ build/moc_testcontrolpanel.cpp: GUI/Widgets/testcontrolpanel.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -11555,6 +11645,9 @@ build/moc_testcontrolpanel.cpp: GUI/Widgets/testcontrolpanel.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/filterdisplayselector.h \
@@ -11991,13 +12084,17 @@ build/moc_controlwindow.cpp: GUI/Windows/controlwindow.h \
 		Engine/Processing/displayundomanager.h \
 		GUI/Widgets/scrollbar.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
 		Engine/Processing/DataFileReaders/datafilemanager.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -12040,6 +12137,9 @@ build/moc_controlwindow.cpp: GUI/Windows/controlwindow.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Dialogs/keyboardshortcutdialog.h \
 		GUI/Dialogs/setfileformatdialog.h \
 		GUI/Dialogs/triggerrecorddialog.h \
@@ -12263,6 +12363,12 @@ build/moc_probemapwindow.cpp: GUI/Windows/probemapwindow.h \
 		Engine/Processing/displayundomanager.h \
 		GUI/Widgets/scrollbar.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -12270,8 +12376,6 @@ build/moc_probemapwindow.cpp: GUI/Windows/probemapwindow.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -12314,6 +12418,9 @@ build/moc_probemapwindow.cpp: GUI/Windows/probemapwindow.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/libexec/moc
 	/Users/zihangwei/Qt/6.9.2/macos/libexec/moc $(DEFINES) -D__APPLE__ -D__GNUC__=4 -D__APPLE_CC__ -D__cplusplus=201402L -D__APPLE_CC__=6000 -D__clang__ -D__clang_major__=17 -D__clang_minor__=0 -D__clang_patchlevel__=0 -D__GNUC__=4 -D__GNUC_MINOR__=2 -D__GNUC_PATCHLEVEL__=1 -I/Users/zihangwei/Qt/6.9.2/macos/mkspecs/macx-clang -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/DataFileReaders' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/SaveManagers' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Processing/XPUInterfaces' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/Threads' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Synthetic' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Abstract' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/Engine/API/Hardware' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Dialogs' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Widgets' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/GUI/Windows' -I'/Users/zihangwei/Library/Mobile Documents/com~apple~CloudDocs/Workspace/BTIT/Intan-RHX-main/includes' -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtMultimedia.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtNetwork.framework/Headers -I/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include/c++/v1 -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/17/include -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk/usr/include -I/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include -F/Users/zihangwei/Qt/6.9.2/macos/lib GUI/Windows/probemapwindow.h -o build/moc_probemapwindow.cpp
 
@@ -12453,6 +12560,12 @@ build/moc_controlpanel.cpp: GUI/Widgets/controlpanel.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -12533,8 +12646,6 @@ build/moc_controlpanel.cpp: GUI/Widgets/controlpanel.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -12578,6 +12689,9 @@ build/moc_controlpanel.cpp: GUI/Widgets/controlpanel.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/filterdisplayselector.h \
@@ -13543,6 +13657,12 @@ build/main.o: main.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/H
 		includes/CL/cl.h \
 		includes/CL/cl_platform.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
 		Engine/Processing/signalsources.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtGui.framework/Headers/QColor \
@@ -13667,8 +13787,6 @@ build/main.o: main.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/H
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -13711,6 +13829,9 @@ build/main.o: main.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/H
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Windows/controlwindow.h \
@@ -13735,8 +13856,6 @@ build/main.o: main.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/H
 		Engine/API/Synthetic/syntheticrhxcontroller.h \
 		Engine/API/Synthetic/synthdatablockgenerator.h \
 		Engine/API/Synthetic/randomnumber.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
 		Engine/API/Synthetic/playbackrhxcontroller.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/main.o main.cpp
 
@@ -17119,6 +17238,12 @@ build/commandparser.o: Engine/Processing/commandparser.cpp Engine/Processing/com
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/qwizard.h \
 		Engine/Processing/impedancereader.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -17126,8 +17251,6 @@ build/commandparser.o: Engine/Processing/commandparser.cpp Engine/Processing/com
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -17170,6 +17293,9 @@ build/commandparser.o: Engine/Processing/commandparser.cpp Engine/Processing/com
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Windows/controlwindow.h \
 		GUI/Windows/probemapwindow.h \
 		GUI/Widgets/impedancegradient.h \
@@ -17324,6 +17450,10 @@ build/controllerinterface.o: Engine/Processing/controllerinterface.cpp /Users/zi
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -17404,8 +17534,6 @@ build/controllerinterface.o: Engine/Processing/controllerinterface.cpp /Users/zi
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -17449,6 +17577,9 @@ build/controllerinterface.o: Engine/Processing/controllerinterface.cpp /Users/zi
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/filterdisplayselector.h
@@ -18407,6 +18538,12 @@ build/stimparametersclipboard.o: Engine/Processing/stimparametersclipboard.cpp E
 		includes/CL/cl.h \
 		includes/CL/cl_platform.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -18538,8 +18675,6 @@ build/stimparametersclipboard.o: Engine/Processing/stimparametersclipboard.cpp E
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -18582,7 +18717,10 @@ build/stimparametersclipboard.o: Engine/Processing/stimparametersclipboard.cpp E
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
-		Engine/Threads/qlearningagent.h
+		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/stimparametersclipboard.o Engine/Processing/stimparametersclipboard.cpp
 
 build/systemstate.o: Engine/Processing/systemstate.cpp Engine/Processing/xmlinterface.h \
@@ -19459,6 +19597,12 @@ build/xmlinterface.o: Engine/Processing/xmlinterface.cpp Engine/Processing/xmlin
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/qwidgetaction.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/qwizard.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -19466,8 +19610,6 @@ build/xmlinterface.o: Engine/Processing/xmlinterface.cpp Engine/Processing/xmlin
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -19510,6 +19652,9 @@ build/xmlinterface.o: Engine/Processing/xmlinterface.cpp Engine/Processing/xmlin
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers/QtXml \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers/qtxmlglobal.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtXml.framework/Headers/qdom.h \
@@ -19946,6 +20091,10 @@ build/gamethread.o: Engine/Threads/gamethread.cpp Engine/Threads/gamethread.h \
 		Engine/Processing/filter.h \
 		Engine/Threads/qlearningagent.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -19988,8 +20137,11 @@ build/gamethread.o: Engine/Threads/gamethread.cpp Engine/Threads/gamethread.h \
 		GUI/Dialogs/spikesortingdialog.h \
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QDebug \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qdebug.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QDateTime \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qdatetime.h \
 		Engine/API/Synthetic/syntheticrhxcontroller.h \
@@ -20001,6 +20153,17 @@ build/ponggame.o: Engine/Threads/ponggame.cpp Engine/Threads/ponggame.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/ponggame.o Engine/Threads/ponggame.cpp
+
+build/stimworker.o: Engine/Threads/stimworker.cpp Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/stimworker.o Engine/Threads/stimworker.cpp
 
 build/savetodiskthread.o: Engine/Threads/savetodiskthread.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
@@ -20450,6 +20613,8 @@ build/usbdatathread.o: Engine/Threads/usbdatathread.cpp /Users/zihangwei/Qt/6.9.
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -20687,7 +20852,10 @@ build/usbdatathread.o: Engine/Threads/usbdatathread.cpp /Users/zihangwei/Qt/6.9.
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
-		Engine/Threads/qlearningagent.h
+		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/usbdatathread.o Engine/Threads/usbdatathread.cpp
 
 build/waveformprocessorthread.o: Engine/Threads/waveformprocessorthread.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
@@ -21299,6 +21467,12 @@ build/analogoutconfigdialog.o: GUI/Dialogs/analogoutconfigdialog.cpp /Users/ziha
 		Engine/Processing/controllerinterface.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Hardware/rhxdatablock.h \
 		includes/okFrontPanel.h \
@@ -21375,8 +21549,6 @@ build/analogoutconfigdialog.o: GUI/Dialogs/analogoutconfigdialog.cpp /Users/ziha
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -21418,7 +21590,10 @@ build/analogoutconfigdialog.o: GUI/Dialogs/analogoutconfigdialog.cpp /Users/ziha
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
-		Engine/Threads/qlearningagent.h
+		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/analogoutconfigdialog.o GUI/Dialogs/analogoutconfigdialog.cpp
 
 build/anoutdialog.o: GUI/Dialogs/anoutdialog.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QtWidgets \
@@ -22439,11 +22614,15 @@ build/boardselectdialog.o: GUI/Dialogs/boardselectdialog.cpp /Users/zihangwei/Qt
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -22486,6 +22665,9 @@ build/boardselectdialog.o: GUI/Dialogs/boardselectdialog.cpp /Users/zihangwei/Qt
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Windows/controlwindow.h \
@@ -22510,8 +22692,6 @@ build/boardselectdialog.o: GUI/Dialogs/boardselectdialog.cpp /Users/zihangwei/Qt
 		Engine/API/Synthetic/syntheticrhxcontroller.h \
 		Engine/API/Synthetic/synthdatablockgenerator.h \
 		Engine/API/Synthetic/randomnumber.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
 		Engine/API/Synthetic/playbackrhxcontroller.h \
 		GUI/Dialogs/scrollablemessageboxdialog.h \
 		GUI/Dialogs/advancedstartupdialog.h
@@ -26287,6 +26467,12 @@ build/abstractpanel.o: GUI/Widgets/abstractpanel.cpp GUI/Widgets/abstractpanel.h
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -26367,8 +26553,6 @@ build/abstractpanel.o: GUI/Widgets/abstractpanel.cpp GUI/Widgets/abstractpanel.h
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -26412,6 +26596,9 @@ build/abstractpanel.o: GUI/Widgets/abstractpanel.cpp GUI/Widgets/abstractpanel.h
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/filterdisplayselector.h \
@@ -26648,6 +26835,12 @@ build/controlpanelaudioanalogtab.o: GUI/Widgets/controlpanelaudioanalogtab.cpp G
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -26850,8 +27043,6 @@ build/controlpanelaudioanalogtab.o: GUI/Widgets/controlpanelaudioanalogtab.cpp G
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -26894,6 +27085,9 @@ build/controlpanelaudioanalogtab.o: GUI/Widgets/controlpanelaudioanalogtab.cpp G
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Widgets/controlpanelaudioanalogtab.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/controlpanelaudioanalogtab.o GUI/Widgets/controlpanelaudioanalogtab.cpp
 
@@ -27031,6 +27225,12 @@ build/controlpanelbandwidthtab.o: GUI/Widgets/controlpanelbandwidthtab.cpp Engin
 		Engine/Processing/controllerinterface.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QObject \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/Threads/abstractgamecontroller.h \
@@ -27108,8 +27308,6 @@ build/controlpanelbandwidthtab.o: GUI/Widgets/controlpanelbandwidthtab.cpp Engin
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -27152,6 +27350,9 @@ build/controlpanelbandwidthtab.o: GUI/Widgets/controlpanelbandwidthtab.cpp Engin
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Windows/viewfilterswindow.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QMainWindow \
 		GUI/Widgets/filterplot.h
@@ -27292,6 +27493,10 @@ build/controlpanelconfiguretab.o: GUI/Widgets/controlpanelconfiguretab.cpp /User
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -27372,8 +27577,6 @@ build/controlpanelconfiguretab.o: GUI/Widgets/controlpanelconfiguretab.cpp /User
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -27416,6 +27619,9 @@ build/controlpanelconfiguretab.o: GUI/Widgets/controlpanelconfiguretab.cpp /User
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/controlpanelconfiguretab.o GUI/Widgets/controlpanelconfiguretab.cpp
@@ -27553,6 +27759,12 @@ build/controlpanelimpedancetab.o: GUI/Widgets/controlpanelimpedancetab.cpp /User
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -27633,8 +27845,6 @@ build/controlpanelimpedancetab.o: GUI/Widgets/controlpanelimpedancetab.cpp /User
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -27677,6 +27887,9 @@ build/controlpanelimpedancetab.o: GUI/Widgets/controlpanelimpedancetab.cpp /User
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/controlpanelimpedancetab.o GUI/Widgets/controlpanelimpedancetab.cpp
@@ -27810,6 +28023,12 @@ build/controlpaneltriggertab.o: GUI/Widgets/controlpaneltriggertab.cpp GUI/Widge
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -27890,8 +28109,6 @@ build/controlpaneltriggertab.o: GUI/Widgets/controlpaneltriggertab.cpp GUI/Widge
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -27934,7 +28151,10 @@ build/controlpaneltriggertab.o: GUI/Widgets/controlpaneltriggertab.cpp GUI/Widge
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
-		Engine/Threads/qlearningagent.h
+		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/controlpaneltriggertab.o GUI/Widgets/controlpaneltriggertab.cpp
 
 build/digfigure.o: GUI/Widgets/digfigure.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QtWidgets \
@@ -29495,6 +29715,12 @@ build/multiwaveformplot.o: GUI/Widgets/multiwaveformplot.cpp Engine/Processing/c
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -29698,8 +29924,6 @@ build/multiwaveformplot.o: GUI/Widgets/multiwaveformplot.cpp Engine/Processing/c
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -29743,6 +29967,9 @@ build/multiwaveformplot.o: GUI/Widgets/multiwaveformplot.cpp Engine/Processing/c
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Dialogs/waveformselectdialog.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/multiwaveformplot.o GUI/Widgets/multiwaveformplot.cpp
 
@@ -31689,6 +31916,12 @@ build/testcontrolpanel.o: GUI/Widgets/testcontrolpanel.cpp GUI/Widgets/controlpa
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -31769,8 +32002,6 @@ build/testcontrolpanel.o: GUI/Widgets/testcontrolpanel.cpp GUI/Widgets/controlpa
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -31814,6 +32045,9 @@ build/testcontrolpanel.o: GUI/Widgets/testcontrolpanel.cpp GUI/Widgets/controlpa
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		Engine/Processing/commandparser.h \
 		Engine/Processing/impedancereader.h \
 		GUI/Widgets/testcontrolpanel.h \
@@ -32606,13 +32840,17 @@ build/controlwindow.o: GUI/Windows/controlwindow.cpp /Users/zihangwei/Qt/6.9.2/m
 		GUI/Widgets/spikegradient.h \
 		Engine/Processing/xmlinterface.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
 		Engine/Processing/DataFileReaders/datafilemanager.h \
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -32654,6 +32892,9 @@ build/controlwindow.o: GUI/Windows/controlwindow.cpp /Users/zihangwei/Qt/6.9.2/m
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Dialogs/keyboardshortcutdialog.h \
 		GUI/Dialogs/setfileformatdialog.h \
 		GUI/Dialogs/triggerrecorddialog.h \
@@ -32884,6 +33125,12 @@ build/probemapwindow.o: GUI/Windows/probemapwindow.cpp /Users/zihangwei/Qt/6.9.2
 		GUI/Widgets/spikegradient.h \
 		Engine/Processing/xmlinterface.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -32891,8 +33138,6 @@ build/probemapwindow.o: GUI/Windows/probemapwindow.cpp /Users/zihangwei/Qt/6.9.2
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -32934,7 +33179,10 @@ build/probemapwindow.o: GUI/Windows/probemapwindow.cpp /Users/zihangwei/Qt/6.9.2
 		GUI/Dialogs/spikesortingdialog.h \
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
-		Engine/Threads/qlearningagent.h
+		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/probemapwindow.o GUI/Windows/probemapwindow.cpp
 
 build/impedancefreqdialog.o: GUI/Dialogs/impedancefreqdialog.cpp /Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QtWidgets \
@@ -33193,6 +33441,12 @@ build/controlpanel.o: GUI/Widgets/controlpanel.cpp GUI/Widgets/controlpanelbandw
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qobject.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QString \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qstring.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		Engine/API/Abstract/abstractrhxcontroller.h \
 		Engine/API/Hardware/rhxglobals.h \
@@ -33273,8 +33527,6 @@ build/controlpanel.o: GUI/Widgets/controlpanel.cpp GUI/Widgets/controlpanelbandw
 		Engine/Processing/datastreamfifo.h \
 		Engine/Processing/semaphore.h \
 		Engine/Threads/usbdatathread.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QThread \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qthread.h \
 		Engine/Threads/waveformprocessorthread.h \
 		Engine/Processing/waveformfifo.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QSemaphore \
@@ -33318,6 +33570,9 @@ build/controlpanel.o: GUI/Widgets/controlpanel.cpp GUI/Widgets/controlpanelbandw
 		GUI/Widgets/spikeplot.h \
 		Engine/Threads/gamethread.h \
 		Engine/Threads/qlearningagent.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		GUI/Windows/viewfilterswindow.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QMainWindow \
 		GUI/Widgets/filterplot.h \
@@ -33559,6 +33814,10 @@ build/controlpanelgametab.o: GUI/Widgets/controlpanelgametab.cpp GUI/Widgets/con
 		Engine/Threads/qlearningagent.h \
 		GUI/Widgets/ponggamewidget.h \
 		Engine/Processing/controllerinterface.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QElapsedTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qelapsedtimer.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
 		Engine/API/Hardware/rhxcontroller.h \
 		includes/okFrontPanel.h \
 		Engine/Processing/DataFileReaders/datafilereader.h \
@@ -33601,8 +33860,9 @@ build/controlpanelgametab.o: GUI/Widgets/controlpanelgametab.cpp GUI/Widgets/con
 		GUI/Dialogs/spikesortingdialog.h \
 		Engine/Processing/xmlinterface.h \
 		GUI/Widgets/spikeplot.h \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QTimer \
-		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qtimer.h \
+		Engine/Threads/stimworker.h \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/QRandomGenerator \
+		/Users/zihangwei/Qt/6.9.2/macos/lib/QtCore.framework/Headers/qrandom.h \
 		/Users/zihangwei/Qt/6.9.2/macos/lib/QtWidgets.framework/Headers/QStyle
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/controlpanelgametab.o GUI/Widgets/controlpanelgametab.cpp
 
@@ -34277,6 +34537,9 @@ build/moc_audiothread.o: build/moc_audiothread.cpp
 
 build/moc_gamethread.o: build/moc_gamethread.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_gamethread.o build/moc_gamethread.cpp
+
+build/moc_stimworker.o: build/moc_stimworker.cpp 
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_stimworker.o build/moc_stimworker.cpp
 
 build/moc_savetodiskthread.o: build/moc_savetodiskthread.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/moc_savetodiskthread.o build/moc_savetodiskthread.cpp
