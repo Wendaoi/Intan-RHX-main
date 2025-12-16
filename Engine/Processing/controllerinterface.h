@@ -138,6 +138,7 @@ public:
     void setGameMinThreshold(double minThreshold);
     void setGameRefractoryPeriod(int samples);
     void setGameExperimentCondition(int condition);
+    void setMissFreezeDurationMs(int durationMs);
 
     void setHitStimAmplitude(double amplitude) { if (gameThread) gameThread->setHitStimAmplitude(amplitude); }
     void setHitStimFrequency(double frequency) { if (gameThread) gameThread->setHitStimFrequency(frequency); }
@@ -146,9 +147,9 @@ public:
     void setMissStimFrequency(double frequency) { if (gameThread) gameThread->setMissStimFrequency(frequency); }
     void setMissStimDuration(double duration) { if (gameThread) gameThread->setMissStimDuration(duration); }
     // Voltage-target setters (mV). Currents will be auto-computed from electrode impedance.
-    void setHitTargetVoltage(double mv);
-    void setMissTargetVoltage(double mv);
-    void setSensoryTargetVoltage(double mv);
+    void setHitTargetCurrent(double ua);
+    void setMissTargetCurrent(double ua);
+    void setSensoryTargetCurrent(double ua);
 
     void enableFastSettle(bool enabled);
     void enableExternalFastSettle(bool enabled);
@@ -177,6 +178,8 @@ public:
     void uploadStimParameters(Channel* channel);
     void uploadStimParameters();
     void modulateSpikes(PaddleAction action);
+
+    void logStimChannelImpedances();
 
 signals:
     void setTimeLabel(QString text);
@@ -252,9 +255,9 @@ private:
     QElapsedTimer feedbackSilentTimer;
 
     // Voltage targets (mV) that will be converted to per-channel current using measured impedance.
-    double targetHit_mV = 75.0;
-    double targetMiss_mV = 150.0;
-    double targetSensory_mV = 75.0;
+    double targetHit_uA = 1.0;
+    double targetMiss_uA = 2.0;
+    double targetSensory_uA = 1.0;
     void openController(const QString& boardSerialNumber);
     void initializeController();
     int scanPorts(std::vector<ChipType> &chipType, std::vector<int> &portIndex, std::vector<int> &commandStream,

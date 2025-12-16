@@ -13,7 +13,9 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
 {
     // Game Control Group
     QGroupBox *controlGroupBox = new QGroupBox(tr("Game Control"));
-    
+    controlGroupBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::MinimumExpanding);
+    controlGroupBox->setMinimumHeight(240);
+
     enableGameCheckBox = new QCheckBox(tr("Enable Pong Game"));
     connect(enableGameCheckBox, SIGNAL(toggled(bool)), this, SLOT(toggleGame(bool)));
 
@@ -45,37 +47,46 @@ ControlPanelGameTab::ControlPanelGameTab(ControllerInterface* controllerInterfac
     connect(conditionComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setExperimentCondition(int)));
 
     QFormLayout *controlLayout = new QFormLayout;
+    controlLayout->setVerticalSpacing(5);
     controlLayout->addRow(enableGameCheckBox);
     controlLayout->addRow(tr("Threshold Multiplier:"), thresholdMultiplierSpinBox);
     controlLayout->addRow(tr("Min Threshold:"), minThresholdSpinBox);
     controlLayout->addRow(tr("Refractory Period:"), refractoryPeriodSpinBox);
     controlLayout->addRow(tr("Experiment Condition:"), conditionComboBox);
 
-    // Voltage targets (mV)
-    hitTargetVoltageSpinBox = new QDoubleSpinBox;
-    hitTargetVoltageSpinBox->setRange(0.0, 1000.0);
-    hitTargetVoltageSpinBox->setSingleStep(5.0);
-    hitTargetVoltageSpinBox->setValue(75.0);
-    hitTargetVoltageSpinBox->setSuffix(tr(" mV"));
-    connect(hitTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setHitTargetVoltage(double)));
+    // Current targets (µA)
+    hitTargetCurrentSpinBox = new QDoubleSpinBox;
+    hitTargetCurrentSpinBox->setRange(0.0, 2000.0);
+    hitTargetCurrentSpinBox->setSingleStep(0.5);
+    hitTargetCurrentSpinBox->setValue(1.0);
+    hitTargetCurrentSpinBox->setSuffix(tr(" µA"));
+    connect(hitTargetCurrentSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setHitTargetCurrent(double)));
 
-    missTargetVoltageSpinBox = new QDoubleSpinBox;
-    missTargetVoltageSpinBox->setRange(0.0, 1000.0);
-    missTargetVoltageSpinBox->setSingleStep(5.0);
-    missTargetVoltageSpinBox->setValue(150.0);
-    missTargetVoltageSpinBox->setSuffix(tr(" mV"));
-    connect(missTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setMissTargetVoltage(double)));
+    missTargetCurrentSpinBox = new QDoubleSpinBox;
+    missTargetCurrentSpinBox->setRange(0.0, 2000.0);
+    missTargetCurrentSpinBox->setSingleStep(0.5);
+    missTargetCurrentSpinBox->setValue(2.0);
+    missTargetCurrentSpinBox->setSuffix(tr(" µA"));
+    connect(missTargetCurrentSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setMissTargetCurrent(double)));
 
-    sensoryTargetVoltageSpinBox = new QDoubleSpinBox;
-    sensoryTargetVoltageSpinBox->setRange(0.0, 1000.0);
-    sensoryTargetVoltageSpinBox->setSingleStep(5.0);
-    sensoryTargetVoltageSpinBox->setValue(75.0);
-    sensoryTargetVoltageSpinBox->setSuffix(tr(" mV"));
-    connect(sensoryTargetVoltageSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setSensoryTargetVoltage(double)));
+    sensoryTargetCurrentSpinBox = new QDoubleSpinBox;
+    sensoryTargetCurrentSpinBox->setRange(0.0, 2000.0);
+    sensoryTargetCurrentSpinBox->setSingleStep(0.5);
+    sensoryTargetCurrentSpinBox->setValue(1.0);
+    sensoryTargetCurrentSpinBox->setSuffix(tr(" µA"));
+    connect(sensoryTargetCurrentSpinBox, SIGNAL(valueChanged(double)), this, SLOT(setSensoryTargetCurrent(double)));
 
-    controlLayout->addRow(tr("Hit Target Voltage:"), hitTargetVoltageSpinBox);
-    controlLayout->addRow(tr("Miss Target Voltage:"), missTargetVoltageSpinBox);
-    controlLayout->addRow(tr("Sensory Target Voltage:"), sensoryTargetVoltageSpinBox);
+    missFreezeDurationSpinBox = new QSpinBox;
+    missFreezeDurationSpinBox->setRange(0, 10000);
+    missFreezeDurationSpinBox->setSingleStep(100);
+    missFreezeDurationSpinBox->setValue(2000);
+    missFreezeDurationSpinBox->setSuffix(tr(" ms"));
+    connect(missFreezeDurationSpinBox, SIGNAL(valueChanged(int)), this, SLOT(setMissFreezeDuration(int)));
+
+    controlLayout->addRow(tr("Hit Target Current:"), hitTargetCurrentSpinBox);
+    controlLayout->addRow(tr("Miss Target Current:"), missTargetCurrentSpinBox);
+    controlLayout->addRow(tr("Sensory Target Current:"), sensoryTargetCurrentSpinBox);
+    controlLayout->addRow(tr("Miss Freeze Duration:"), missFreezeDurationSpinBox);
     controlGroupBox->setLayout(controlLayout);
 
     // 游戏图形显示
@@ -129,6 +140,7 @@ void ControlPanelGameTab::updateFromState()
     minThresholdSpinBox->setEnabled(isRunning && gameEnabled);
     refractoryPeriodSpinBox->setEnabled(isRunning && gameEnabled);
     conditionComboBox->setEnabled(isRunning && gameEnabled);
+    missFreezeDurationSpinBox->setEnabled(isRunning && gameEnabled);
 
     if (!isRunning) {
         if (enableGameCheckBox->isChecked()) {
@@ -244,19 +256,24 @@ void ControlPanelGameTab::setMissStimDuration(double value)
     controllerInterface->setMissStimDuration(value);
 }
 
-void ControlPanelGameTab::setHitTargetVoltage(double mv)
+void ControlPanelGameTab::setHitTargetCurrent(double ua)
 {
-    controllerInterface->setHitTargetVoltage(mv);
+    controllerInterface->setHitTargetCurrent(ua);
 }
 
-void ControlPanelGameTab::setMissTargetVoltage(double mv)
+void ControlPanelGameTab::setMissTargetCurrent(double ua)
 {
-    controllerInterface->setMissTargetVoltage(mv);
+    controllerInterface->setMissTargetCurrent(ua);
 }
 
-void ControlPanelGameTab::setSensoryTargetVoltage(double mv)
+void ControlPanelGameTab::setSensoryTargetCurrent(double ua)
 {
-    controllerInterface->setSensoryTargetVoltage(mv);
+    controllerInterface->setSensoryTargetCurrent(ua);
+}
+
+void ControlPanelGameTab::setMissFreezeDuration(int value)
+{
+    controllerInterface->setMissFreezeDurationMs(value);
 }
 
 void ControlPanelGameTab::validateParameters()

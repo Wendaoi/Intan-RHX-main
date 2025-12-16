@@ -38,9 +38,10 @@ private slots:
     void setMissStimAmplitude(double value);
     void setMissStimFrequency(double value);
     void setMissStimDuration(double value);
-    void setHitTargetVoltage(double mv);
-    void setMissTargetVoltage(double mv);
-    void setSensoryTargetVoltage(double mv);
+    void setHitTargetCurrent(double ua);
+    void setMissTargetCurrent(double ua);
+    void setSensoryTargetCurrent(double ua);
+    void setMissFreezeDuration(int value);
     void validateParameters();
 
 private:
@@ -64,10 +65,11 @@ private:
     QDoubleSpinBox *missStimAmplitudeSpinBox;
     QDoubleSpinBox *missStimFrequencySpinBox;
     QDoubleSpinBox *missStimDurationSpinBox;
+    QSpinBox *missFreezeDurationSpinBox;
     // Voltage targets (mV)
-    QDoubleSpinBox *hitTargetVoltageSpinBox;
-    QDoubleSpinBox *missTargetVoltageSpinBox;
-    QDoubleSpinBox *sensoryTargetVoltageSpinBox;
+    QDoubleSpinBox *hitTargetCurrentSpinBox;
+    QDoubleSpinBox *missTargetCurrentSpinBox;
+    QDoubleSpinBox *sensoryTargetCurrentSpinBox;
 
     // Spike 速率显示
     QLabel *spikeRateLabel;

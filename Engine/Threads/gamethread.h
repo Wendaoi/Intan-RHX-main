@@ -143,6 +143,7 @@ public:
     void setMissStimAmplitude(double amplitude);
     void setMissStimFrequency(double frequency);
     void setMissStimDuration(double duration);
+    void setMissFreezeDurationMs(int durationMs);
 
 
 signals:
@@ -238,6 +239,8 @@ private:
     std::mutex stimParamsMutex;
     double hitStimAmplitude, hitStimFrequency, hitStimDuration;
     double missStimAmplitude, missStimFrequency, missStimDuration;
+    std::atomic<int> missFreezeDurationMs;
+    std::chrono::steady_clock::time_point missFreezeUntil;
 
     std::mutex signalSourcesMutex;
 

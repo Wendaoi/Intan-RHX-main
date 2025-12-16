@@ -382,20 +382,25 @@ void ControllerInterface::setGameExperimentCondition(int condition)
     }
 }
 
-void ControllerInterface::setHitTargetVoltage(double mv)
+void ControllerInterface::setMissFreezeDurationMs(int durationMs)
 {
-    targetHit_mV = mv;
+    if (gameThread) gameThread->setMissFreezeDurationMs(durationMs);
+}
+
+void ControllerInterface::setHitTargetCurrent(double ua)
+{
+    targetHit_uA = ua;
     if (state->getControllerTypeEnum() == ControllerStimRecord) configureHitStimParams();
 }
 
-void ControllerInterface::setMissTargetVoltage(double mv)
+void ControllerInterface::setMissTargetCurrent(double ua)
 {
-    targetMiss_mV = mv;
+    targetMiss_uA = ua;
 }
 
-void ControllerInterface::setSensoryTargetVoltage(double mv)
+void ControllerInterface::setSensoryTargetCurrent(double ua)
 {
-    targetSensory_mV = mv;
+    targetSensory_uA = ua;
     if (state->getControllerTypeEnum() == ControllerStimRecord) configureSensoryParams();
 }
 
@@ -481,7 +486,7 @@ void ControllerInterface::configureHitStimParams()
         params->numberOfStimPulses->setValue(10); // 100ms at 100Hz
         params->pulseTrainPeriod->setValue(10000.0); // 10 ms = 100 Hz (us)
         params->firstPhaseDuration->setValue(100.0); // 100 us
-        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetHit_mV));
+        params->firstPhaseAmplitude->setValue(targetHit_uA);
         uploadStimParameters(channel);
         qDebug() << "[StimConfig-Hit]" << channelName
                  << "triggerIdx=" << params->triggerSource->getIndex()
@@ -489,6 +494,9 @@ void ControllerInterface::configureHitStimParams()
     }
     hitStimConfigured = true;
     // Note: USBDataThread sets StimCmdMode at run time; avoid forcing here to prevent side effects.
+
+    // 打印当前刺激通道阻抗，便于在终端快速校验
+    logStimChannelImpedances();
 }
 
 void ControllerInterface::configureMissStimParams()
@@ -505,7 +513,7 @@ void ControllerInterface::configureMissStimParams()
         params->numberOfStimPulses->setValue(20);         // 5 Hz * 4 s
         params->pulseTrainPeriod->setValue(200000.0);     // 200 ms = 5 Hz (us)
         params->firstPhaseDuration->setValue(100.0);      // 100 us
-        params->firstPhaseAmplitude->setValue(1.5);       // uA, ~150 mV @100 kOhm
+        params->firstPhaseAmplitude->setValue(targetMiss_uA);
         uploadStimParameters(channel);
     }
     missStimConfigured = true;
@@ -524,7 +532,7 @@ void ControllerInterface::configureSensoryParams()
         params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
         params->pulseOrTrain->setIndex(SinglePulse);
         params->firstPhaseDuration->setValue((double) sensoryPulseWidthUs);
-        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetSensory_mV));
+        params->firstPhaseAmplitude->setValue(targetSensory_uA);
         uploadStimParameters(channel);
         const int trigIdx = params->triggerSource->getIndex();
         const double amp = params->firstPhaseAmplitude->getValue();
@@ -536,6 +544,9 @@ void ControllerInterface::configureSensoryParams()
     }
     sensoryConfigured = true;
     // See note above: do not force StimCmdMode here.
+
+    // 打印当前刺激通道阻抗，便于终端校验
+    logStimChannelImpedances();
 }
 
 void ControllerInterface::onStimWorkerTriggerChannel(int zone)
@@ -572,7 +583,7 @@ void ControllerInterface::startMissStimSession()
         params->triggerSource->setValue(QString("KeyPressF%1").arg(i + 1));
         params->pulseOrTrain->setIndex(SinglePulse);
         params->firstPhaseDuration->setValue((double) sensoryPulseWidthUs);
-        params->firstPhaseAmplitude->setValue(computeCurrentFromImpedanceUA(channelName, targetMiss_mV));
+        params->firstPhaseAmplitude->setValue(targetMiss_uA);
         uploadStimParameters(channel);
     }
     // See note above: do not force StimCmdMode here.
@@ -1435,7 +1446,7 @@ void ControllerInterface::runController()
 
     // 方案A：在采集线程启动前，预先配置刺激参数，避免在运行中批量上传导致波形停顿
     if (state->getControllerTypeEnum() == ControllerStimRecord) {
-        qDebug() << "[ControllerInterface] Pre-configure stim params before acquisition";
+        qDebug() << "[ControllerInterface] Pre-configure stim params (currents) before acquisition";
         configureSensoryParams();
         configureHitStimParams();
     }
@@ -2730,6 +2741,29 @@ void ControllerInterface::uploadStimParameters()
                 uploadStimParameters(channel);
             }
         }
+    }
+}
+
+void ControllerInterface::logStimChannelImpedances()
+{
+    QStringList missing;
+    for (int i = 0; i < 8; ++i) {
+        QString chName = QString("A-%1").arg(i, 3, 10, QChar('0'));
+        Channel* ch = state->signalSources->channelByName(chName);
+        double z_kohm = -1.0;
+        bool valid = false;
+        if (ch && ch->isImpedanceValid()) {
+            z_kohm = ch->getImpedanceMagnitude();
+            valid = true;
+        }
+        if (valid) {
+            qDebug() << "[Impedance]" << chName << z_kohm << "kOhm";
+        } else {
+            missing << chName;
+        }
+    }
+    if (!missing.isEmpty()) {
+        qDebug() << "[Impedance] invalid/unknown:" << missing.join(", ");
     }
 }
 

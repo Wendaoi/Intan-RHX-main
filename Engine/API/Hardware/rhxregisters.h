@@ -38,7 +38,7 @@
 class RHXRegisters
 {
 public:
-    RHXRegisters(ControllerType type_, double sampleRate_, StimStepSize stimStep_ = StimStepSize500nA);
+    RHXRegisters(ControllerType type_, double sampleRate_, StimStepSize stimStep_ = StimStepSize10nA);
 
     void setFastSettle(bool enabled);
 

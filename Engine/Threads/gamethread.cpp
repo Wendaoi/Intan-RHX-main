@@ -135,7 +135,9 @@ GameThread::GameThread(WaveformFifo* waveformFifo_, SystemState* state_, Control
     hitStimDuration(100.0),
     missStimAmplitude(150.0),
     missStimFrequency(5.0),
-    missStimDuration(4000.0)
+    missStimDuration(4000.0),
+    missFreezeDurationMs(2000),
+    missFreezeUntil(std::chrono::steady_clock::time_point::min())
 {
     keepGoing = false;
     running = false;
@@ -294,6 +296,12 @@ void GameThread::run()
                     paddle_movement = 1; // Down
                 }
 
+                // Miss 刺激后的冻结窗口：保持挡板不动
+                auto nowFreeze = std::chrono::steady_clock::now();
+                if (nowFreeze < missFreezeUntil) {
+                    paddle_movement = 0;
+                }
+
                     // --- GAME UPDATE ---
                     GameEvent event = pongGame->update(paddle_movement);
 
@@ -318,6 +326,8 @@ void GameThread::run()
                         case GameEvent::PlayerMissed:
                             if (cond == ExperimentCondition::Stimulus) {
                                 emit sendMissStim();
+                                // 触发Miss后冻结挡板移动一段时间
+                                missFreezeUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds(missFreezeDurationMs.load());
                             } else if (cond == ExperimentCondition::Silent) {
                                 emit startSilentWindow(kSilentWindowMs);
                             } // NoFeedback: do nothing
@@ -1156,4 +1166,10 @@ void GameThread::setMissStimDuration(double duration)
 {
     std::lock_guard<std::mutex> lock(stimParamsMutex);
     missStimDuration = duration;
+}
+
+void GameThread::setMissFreezeDurationMs(int durationMs)
+{
+    if (durationMs < 0) durationMs = 0;
+    missFreezeDurationMs.store(durationMs);
 }

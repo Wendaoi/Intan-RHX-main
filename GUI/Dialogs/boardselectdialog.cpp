@@ -649,7 +649,7 @@ bool BoardSelectDialog::validControllersPresent(QVector<ControllerInfo*> cInfo)
 void BoardSelectDialog::showDemoMessageBox()
 {
     AmplifierSampleRate sampleRate = SampleRate30000Hz; // Use 30kHz for learning demo
-    StimStepSize stimStepSize = StimStepSize500nA;
+    StimStepSize stimStepSize = StimStepSize10nA;
     bool rememberSettings = false;
 
     DemoSelections demoSelection;
@@ -896,7 +896,7 @@ void BoardSelectDialog::newRowSelected(int row)
         defaultSampleRateCheckBox->setChecked(true);
         defaultSampleRateCheckBox->setVisible(true);
         int defaultSampleRateIndex = settings.value("defaultSampleRate", 14).toInt();
-        int defaultStimStepSizeIndex = settings.value("defaultStimStepSize", 6).toInt();
+        int defaultStimStepSizeIndex = settings.value("defaultStimStepSize", 1).toInt();
         if (controllerType == ControllerStimRecord) {
             defaultSampleRateCheckBox->setText(tr("Start software with ") + SampleRateString[defaultSampleRateIndex] +
                                                tr(" sample rate and ") +
@@ -931,7 +931,7 @@ void BoardSelectDialog::startBoard(int row)
     boardTable->setEnabled(false);
 
     AmplifierSampleRate sampleRate = SampleRate20000Hz;
-    StimStepSize stimStepSize = StimStepSize500nA;
+    StimStepSize stimStepSize = StimStepSize10nA;
     bool rememberSettings = false;
 
     ControllerType controllerType = ControllerRecordUSB3;
@@ -946,7 +946,7 @@ void BoardSelectDialog::startBoard(int row)
     settings.beginGroup(ControllerTypeSettingsGroup[(int)controllerType]);
     if (defaultSampleRateCheckBox->isChecked()) {
         sampleRate = (AmplifierSampleRate) settings.value("defaultSampleRate", 14).toInt();
-        stimStepSize = (StimStepSize) settings.value("defaultStimStepSize", 6).toInt();
+        stimStepSize = (StimStepSize) settings.value("defaultStimStepSize", 1).toInt();
     } else {
         StartupDialog *startupDialog = new StartupDialog(controllerType, &sampleRate, &stimStepSize, &rememberSettings, true, testMode, this);
         startupDialog->exec();

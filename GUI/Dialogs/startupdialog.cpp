@@ -93,7 +93,7 @@ StartupDialog::StartupDialog(ControllerType controllerType_, AmplifierSampleRate
         stimStepComboBox->addItem(StimStepSizeString[8]);
         stimStepComboBox->addItem(StimStepSizeString[9]);
         stimStepComboBox->addItem(StimStepSizeString[10]);
-        stimStepComboBox->setCurrentIndex(5);
+        stimStepComboBox->setCurrentIndex(0);
 
         QHBoxLayout *stimStepLayout1 = new QHBoxLayout();
         stimStepLayout1->addWidget(new QLabel(tr("Stimulation Range"), this));
