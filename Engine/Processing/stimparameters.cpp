@@ -62,6 +62,7 @@ StimParameters::StimParameters(SingleItemList &hList_, SystemState *state_, Sign
         stimShape->addItem("Biphasic", "Biphasic");
         stimShape->addItem("BiphasicWithInterphaseDelay", "BiphasicWithInterphaseDelay");
         stimShape->addItem("Triphasic", "Triphasic");
+        stimShape->addItem("Monophasic", "Monophasic");
         stimShape->setValue("Biphasic");
 
         stimPolarity = new DiscreteItemList("Polarity", hList_, state_, XMLGroupStimParameters, TypeDependencyStim);
@@ -104,9 +105,10 @@ StimParameters::StimParameters(SingleItemList &hList_, SystemState *state_, Sign
         enableAmpSettle = new BooleanItem("EnableAmpSettle", hList_, state_, true, XMLGroupStimParameters, TypeDependencyStim);
         enableChargeRecovery = new BooleanItem("EnableChargeRecovery", hList_, state_, false, XMLGroupStimParameters, TypeDependencyStim);
 
-        firstPhaseDuration = new DoubleRangeItem("FirstPhaseDurationMicroseconds", hList_, state_, 0.0, 5000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
-        secondPhaseDuration = new DoubleRangeItem("SecondPhaseDurationMicroseconds", hList_, state_, 0.0, 5000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
-        interphaseDelay = new DoubleRangeItem("InterphaseDelayMicroseconds", hList_, state_, 0.0, 5000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
+        // Allow much longer single-polarity pulses (e.g., plating) while keeping defaults small.
+        firstPhaseDuration = new DoubleRangeItem("FirstPhaseDurationMicroseconds", hList_, state_, 0.0, 120000000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
+        secondPhaseDuration = new DoubleRangeItem("SecondPhaseDurationMicroseconds", hList_, state_, 0.0, 120000000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
+        interphaseDelay = new DoubleRangeItem("InterphaseDelayMicroseconds", hList_, state_, 0.0, 120000000.0, 100.0, XMLGroupStimParameters, TypeDependencyStim);
         firstPhaseAmplitude = new DoubleRangeItem("FirstPhaseAmplitudeMicroAmps", hList_, state_, 0.0, 2550.0, 0.0, XMLGroupStimParameters, TypeDependencyStim);
         secondPhaseAmplitude = new DoubleRangeItem("SecondPhaseAmplitudeMicroAmps", hList_, state_, 0.0, 2550.0, 0.0, XMLGroupStimParameters, TypeDependencyStim);
         postTriggerDelay = new DoubleRangeItem("PostTriggerDelayMicroseconds", hList_, state_, 0.0, 500000.0, 0.0, XMLGroupStimParameters, TypeDependencyStim);
@@ -116,7 +118,8 @@ StimParameters::StimParameters(SingleItemList &hList_, SystemState *state_, Sign
         postStimAmpSettle = new DoubleRangeItem("PostStimAmpSettleMicroseconds", hList_, state_, 0.0, 500000.0, 1000.0, XMLGroupStimParameters, TypeDependencyStim);
         postStimChargeRecovOn = new DoubleRangeItem("PostStimChargeRecovOnMicroseconds", hList_, state_, 0.0, 1000000.0, 0.0, XMLGroupStimParameters, TypeDependencyStim);
         postStimChargeRecovOff = new DoubleRangeItem("PostStimChargeRecovOffMicroseconds", hList_, state_, 0.0, 1000000.0, 0.0, XMLGroupStimParameters, TypeDependencyStim);
-        numberOfStimPulses = new IntRangeItem("NumberOfStimPulses", hList_, state_, 0, 256, 2, XMLGroupStimParameters, TypeDependencyStim);
+        // Permit long trains (e.g., tens of seconds) by allowing more pulses.
+        numberOfStimPulses = new IntRangeItem("NumberOfStimPulses", hList_, state_, 0, 100000, 2, XMLGroupStimParameters, TypeDependencyStim);
 
     } else if (signalType == BoardDacSignal) {
 

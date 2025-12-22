@@ -2035,9 +2035,12 @@ void ControllerInterface::setStimSequenceParameters(Channel* ampChannel)
         eventEnd = eventEndStim + refractoryPeriod;
         break;
     case Monophasic:
-        // Monophasic doesn't apply to StimParameters for amp channels.
-        std::cerr << "Attempted to set amp channel's StimShape to Monophasic";
-        return;
+        eventStartStim = postTriggerDelay;
+        eventStimPhase2 = Never;
+        eventStimPhase3 = Never;
+        eventEndStim = eventStartStim + firstPhaseDuration;
+        eventEnd = eventEndStim + refractoryPeriod;
+        break;
     }
 
     if ((PulseOrTrain) parameters->pulseOrTrain->getIndex() == PulseTrain) {
@@ -2099,7 +2102,9 @@ void ControllerInterface::setStimSequenceParameters(Channel* ampChannel)
     std::vector<unsigned int> commandList;
 
     int firstPhaseAmplitude = round(parameters->firstPhaseAmplitude->getValue() / currentstep);
-    int secondPhaseAmplitude = round(parameters->secondPhaseAmplitude->getValue() / currentstep);
+    // Force second phase magnitude to 0 for monophasic to avoid stale UI values affecting polarity math.
+    double secondPhaseRaw = (StimShape) parameters->stimShape->getIndex() == Monophasic ? 0.0 : parameters->secondPhaseAmplitude->getValue();
+    int secondPhaseAmplitude = round(secondPhaseRaw / currentstep);
 
     int posMag, negMag;
 
