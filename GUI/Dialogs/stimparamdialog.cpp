@@ -48,7 +48,7 @@ StimParamDialog::StimParamDialog(SystemState* state_, Channel* channel_, QWidget
     stimShapeLabel = new QLabel(tr("Stimulation Shape:"), this);
     stimShapeComboBox = new QComboBox(this);
     QStringList stimShapes;
-    stimShapes << tr("Biphasic") << tr("Biphasic with Delay") << tr("Triphasic");
+    stimShapes << tr("Biphasic") << tr("Biphasic with Delay") << tr("Triphasic") << tr("Monophasic");
     stimShapeComboBox->addItems(stimShapes);
 
     stimPolarityLabel = new QLabel(tr("Stimulation Polarity:"), this);
@@ -59,16 +59,16 @@ StimParamDialog::StimParamDialog(SystemState* state_, Channel* channel_, QWidget
 
     firstPhaseDurationLabel = new QLabel(tr("First Phase Duration (D1):"), this);
     firstPhaseDurationSpinBox = new TimeSpinBox(timestep, this);
-    firstPhaseDurationSpinBox->setRange(0, 5000);
+    firstPhaseDurationSpinBox->setRange(0, 120000000);
     connect(qApp, SIGNAL(focusChanged(QWidget*,QWidget*)), this, SLOT(notifyFocusChanged(QWidget*,QWidget*)));
 
     secondPhaseDurationLabel = new QLabel(tr("Second Phase Duration (D2):"), this);
     secondPhaseDurationSpinBox = new TimeSpinBox(timestep, this);
-    secondPhaseDurationSpinBox->setRange(0, 5000);
+    secondPhaseDurationSpinBox->setRange(0, 120000000);
 
     interphaseDelayLabel = new QLabel(tr("Interphase Delay (DP):"), this);
     interphaseDelaySpinBox = new TimeSpinBox(timestep, this);
-    interphaseDelaySpinBox->setRange(0, 5000);
+    interphaseDelaySpinBox->setRange(0, 120000000);
 
     firstPhaseAmplitudeLabel = new QLabel(tr("First Phase Amplitude (A1):"), this);
     firstPhaseAmplitudeSpinBox = new CurrentSpinBox(currentstep, this);
@@ -127,8 +127,8 @@ StimParamDialog::StimParamDialog(SystemState* state_, Channel* channel_, QWidget
 
     numberOfStimPulsesLabel = new QLabel(tr("Number of Stim Pulses"), this);
     numberOfStimPulsesSpinBox = new QSpinBox(this);
-    numberOfStimPulsesSpinBox->setMaximumWidth(numberOfStimPulsesSpinBox->fontMetrics().horizontalAdvance("99999  "));
-    numberOfStimPulsesSpinBox->setRange(2, 256);
+    numberOfStimPulsesSpinBox->setMaximumWidth(numberOfStimPulsesSpinBox->fontMetrics().horizontalAdvance("999999  "));
+    numberOfStimPulsesSpinBox->setRange(2, 100000);
 
     pulseTrainPeriodLabel = new QLabel(tr("Pulse Train Period:"), this);
     pulseTrainPeriodSpinBox = new TimeSpinBox(timestep, this);
@@ -644,14 +644,15 @@ void StimParamDialog::enableWidgets()
     stimPolarityComboBox->setEnabled(enableStimCheckBox->isChecked());
     firstPhaseDurationLabel->setEnabled(enableStimCheckBox->isChecked());
     firstPhaseDurationSpinBox->setEnabled(enableStimCheckBox->isChecked());
-    secondPhaseDurationLabel->setEnabled(enableStimCheckBox->isChecked());
-    secondPhaseDurationSpinBox->setEnabled(enableStimCheckBox->isChecked());
+    const bool isMonophasic = stimShapeComboBox->currentIndex() == Monophasic;
+    secondPhaseDurationLabel->setEnabled(enableStimCheckBox->isChecked() && !isMonophasic);
+    secondPhaseDurationSpinBox->setEnabled(enableStimCheckBox->isChecked() && !isMonophasic);
     interphaseDelayLabel->setEnabled(enableStimCheckBox->isChecked() && stimShapeComboBox->currentIndex() == BiphasicWithInterphaseDelay);
     interphaseDelaySpinBox->setEnabled(enableStimCheckBox->isChecked() && stimShapeComboBox->currentIndex() == BiphasicWithInterphaseDelay);
     firstPhaseAmplitudeLabel->setEnabled(enableStimCheckBox->isChecked());
     firstPhaseAmplitudeSpinBox->setEnabled(enableStimCheckBox->isChecked());
-    secondPhaseAmplitudeLabel->setEnabled(enableStimCheckBox->isChecked());
-    secondPhaseAmplitudeSpinBox->setEnabled(enableStimCheckBox->isChecked());
+    secondPhaseAmplitudeLabel->setEnabled(enableStimCheckBox->isChecked() && !isMonophasic);
+    secondPhaseAmplitudeSpinBox->setEnabled(enableStimCheckBox->isChecked() && !isMonophasic);
     totalPosChargeLabel->setEnabled(enableStimCheckBox->isChecked());
     totalNegChargeLabel->setEnabled(enableStimCheckBox->isChecked());
 
@@ -677,6 +678,9 @@ void StimParamDialog::enableWidgets()
     } else if (stimShapeComboBox->currentIndex() == Triphasic) {
         firstPhaseDurationLabel->setText(tr("First/Third Phase Duration (D1):"));
         firstPhaseAmplitudeLabel->setText(tr("First/Third Phase Amplitude (A1):"));
+    } else if (stimShapeComboBox->currentIndex() == Monophasic) {
+        firstPhaseDurationLabel->setText(tr("Phase Duration (D1):"));
+        firstPhaseAmplitudeLabel->setText(tr("Phase Amplitude (A1):"));
     }
 }
 
@@ -686,6 +690,8 @@ void StimParamDialog::calculateCharge()
     // Calculate Qmin and Qmax.
     double firstCharge = (firstPhaseAmplitudeSpinBox->getTrueValue()) * (firstPhaseDurationSpinBox->getTrueValue());
     double secondCharge = (secondPhaseAmplitudeSpinBox->getTrueValue()) * (secondPhaseDurationSpinBox->getTrueValue());
+    if (stimShapeComboBox->currentIndex() == Monophasic)
+        secondCharge = 0.0;
     if (stimShapeComboBox->currentIndex() == Triphasic)
         firstCharge = firstCharge * 2;
     double Qmin = qMin(firstCharge, secondCharge);
@@ -780,8 +786,10 @@ void StimParamDialog::constrainPulseTrainPeriod()
         minimum = firstPhaseDurationSpinBox->getTrueValue() + secondPhaseDurationSpinBox->getTrueValue();
     } else if (stimShapeComboBox->currentIndex() == BiphasicWithInterphaseDelay) {
         minimum = firstPhaseDurationSpinBox->getTrueValue() + secondPhaseDurationSpinBox->getTrueValue() + interphaseDelaySpinBox->getTrueValue();
-    } else {
+    } else if (stimShapeComboBox->currentIndex() == Triphasic) {
         minimum = (2.0 * firstPhaseDurationSpinBox->getTrueValue()) + secondPhaseDurationSpinBox->getTrueValue();
+    } else {
+        minimum = firstPhaseDurationSpinBox->getTrueValue();
     }
     pulseTrainPeriodSpinBox->setTrueMinimum(minimum);
 }
