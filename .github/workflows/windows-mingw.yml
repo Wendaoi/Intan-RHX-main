@@ -17,7 +17,7 @@ jobs:
         with:
           version: 6.9.2
           arch: win64_mingw
-          modules: qtbase qtserialport
+          modules: qtserialport
           tools: tools_mingw1310
 
       - name: Add MinGW to PATH
