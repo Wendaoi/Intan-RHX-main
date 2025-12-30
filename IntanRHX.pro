@@ -302,14 +302,18 @@ unix {
 
 # Windows
 win32-msvc*: {
-    LIBS += -L$$PWD/libraries/Windows/ -ldelayimp
+    LIBS += -L$$PWD/libraries/Windows/ -lOpenCL
+    LIBS += -L$$PWD/libraries/Windows/ -lokFrontPanel
+    LIBS += -ldelayimp
     QMAKE_LFLAGS += /DELAYLOAD:okFrontPanel.dll
 }
 
 win32-g++: {
+    LIBS += -L$$PWD/libraries/Windows/ -lOpenCL
+    LIBS += -L$$PWD/libraries/Windows/ -lokFrontPanel
     # MinGW 不支持 /DELAYLOAD，也不需要 delayimp
-    # 如果 okFrontPanel.dll 缺失，你只能在运行时报错/提示，或者自行实现延迟加载逻辑
 }
+
 
 # Mac
 mac: {
