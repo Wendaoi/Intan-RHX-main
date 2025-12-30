@@ -301,12 +301,14 @@ unix {
 }
 
 # Windows
-win32: {
-    LIBS += -L$$PWD/libraries/Windows/ -lOpenCL # OpenCL library
-    LIBS += -L$$PWD/libraries/Windows/ -lokFrontPanel # Opal Kelly Front Panel library
-    LIBS += -L$$PWD/libraries/Windows/ -ldelayimp # Microsoft's Delay Import library
-    QMAKE_LFLAGS += /DELAYLOAD:okFrontPanel.dll # Use delayimp to only load okFrontPanel.dll when necessary,
-                                            # so we can give an error message when okFrontPanel.dll is missing
+win32-msvc*: {
+    LIBS += -L$$PWD/libraries/Windows/ -ldelayimp
+    QMAKE_LFLAGS += /DELAYLOAD:okFrontPanel.dll
+}
+
+win32-g++: {
+    # MinGW 不支持 /DELAYLOAD，也不需要 delayimp
+    # 如果 okFrontPanel.dll 缺失，你只能在运行时报错/提示，或者自行实现延迟加载逻辑
 }
 
 # Mac
