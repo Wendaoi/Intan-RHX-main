@@ -1,0 +1,77 @@
+name: Windows Build (MinGW)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-windows-mingw:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6.9.2 (MinGW)
+        id: qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.9.2
+          arch: win64_mingw
+          modules: qtbase qtserialport
+          tools: tools_mingw1310
+
+      - name: Add MinGW to PATH
+        shell: pwsh
+        run: |
+          $toolsDir = Join-Path (Split-Path "${{ steps.qt.outputs.qt-path }}" -Parent | Split-Path -Parent) "Tools"
+          $mingwDir = Get-ChildItem -Path $toolsDir -Directory | Where-Object { $_.Name -match "mingw" } | Select-Object -First 1
+          if (-not $mingwDir) { throw "MinGW tools not found under $toolsDir" }
+          Add-Content $env:GITHUB_PATH (Join-Path $mingwDir.FullName "bin")
+
+      - name: Configure (qmake)
+        shell: cmd
+        run: |
+          mkdir build
+          cd build
+          qmake ..\IntanRHX.pro CONFIG+=release
+
+      - name: Build
+        shell: cmd
+        run: |
+          cd build
+          mingw32-make -j2
+
+      - name: Deploy Qt runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item "build\\release\\IntanRHX.exe" "dist\\IntanRHX.exe" -Force
+          windeployqt "dist\\IntanRHX.exe"
+          Copy-Item "libraries\\Windows\\okFrontPanel.dll" "dist\\okFrontPanel.dll" -Force
+
+      - name: Add MinGW runtime DLLs
+        shell: pwsh
+        run: |
+          $mingwBin = Get-Command mingw32-make | Select-Object -ExpandProperty Path | Split-Path -Parent
+          $dlls = @(
+            "libgcc_s_seh-1.dll",
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll",
+            "libssp-0.dll"
+          )
+          foreach ($dll in $dlls) {
+            $src = Join-Path $mingwBin $dll
+            if (Test-Path $src) { Copy-Item $src "dist\\$dll" -Force }
+          }
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          if (Test-Path "IntanRHX-win64-mingw.zip") { Remove-Item "IntanRHX-win64-mingw.zip" -Force }
+          Compress-Archive -Path "dist\\*" -DestinationPath "IntanRHX-win64-mingw.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IntanRHX-win64-mingw
+          path: IntanRHX-win64-mingw.zip
