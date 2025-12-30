@@ -23,10 +23,10 @@ jobs:
           target: "desktop"
           arch: "win64_mingw"
           tools: "tools_mingw1310"
+          modules: "qtmultimedia"
           cache: true
           dir: "${{ github.workspace }}/Qt"
 
-      # 这一步不是必须，但用于快速定位环境是否就绪
       - name: Sanity check toolchain (before PATH fix)
         shell: pwsh
         run: |
@@ -36,22 +36,19 @@ jobs:
           where mingw32-make || $true
           where g++ || $true
 
-      # 如果 install-qt-action 没把 mingw 工具链放进 PATH，这里兜底补上
       - name: Ensure MinGW in PATH (fallback)
         shell: pwsh
         run: |
-          # 如果已经能找到 mingw32-make，就不做任何事
           if (Get-Command mingw32-make -ErrorAction SilentlyContinue) {
             Write-Host "mingw32-make already in PATH."
             exit 0
           }
 
-          # 尝试从常见目录搜索 mingw32-make.exe
           $roots = @()
 
           if ($env:QT_ROOT_DIR) {
-            $roots += (Split-Path -Parent $env:QT_ROOT_DIR)    # ...\Qt\6.9.2\mingw_64 -> ...\Qt\6.9.2
-            $roots += (Split-Path -Parent (Split-Path -Parent $env:QT_ROOT_DIR)) # ...\Qt
+            $roots += (Split-Path -Parent $env:QT_ROOT_DIR)
+            $roots += (Split-Path -Parent (Split-Path -Parent $env:QT_ROOT_DIR))
           }
 
           $roots += (Join-Path -Path $env:GITHUB_WORKSPACE -ChildPath "Qt")
@@ -107,7 +104,6 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
 
-          # 找到 exe（不要写死 build\release\）
           $exe = Get-ChildItem -Path build -Recurse -Filter "IntanRHX.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $exe) {
             throw "IntanRHX.exe not found under build/. Check qmake TARGET / DESTDIR / build output."
@@ -115,19 +111,16 @@ jobs:
 
           Copy-Item $exe.FullName dist\IntanRHX.exe -Force
 
-          # 使用 Qt 自带的 windeployqt
           if (-not $env:QT_ROOT_DIR) { throw "QT_ROOT_DIR not set. Qt install step may have failed." }
           $windeployqt = Join-Path -Path $env:QT_ROOT_DIR -ChildPath "bin\windeployqt.exe"
           if (-not (Test-Path $windeployqt)) { throw "windeployqt not found at $windeployqt" }
 
           & $windeployqt --release --no-translations "dist\IntanRHX.exe"
 
-          # 第三方 DLL（存在才拷贝）
           if (Test-Path "libraries\Windows\okFrontPanel.dll") {
             Copy-Item "libraries\Windows\okFrontPanel.dll" "dist\okFrontPanel.dll" -Force
           }
 
-          # MinGW runtime DLL 兜底（有些情况下 windeployqt 不会自动带齐）
           $mingwBin = (Get-Command g++).Path | Split-Path -Parent
           $dlls = @("libgcc_s_seh-1.dll","libstdc++-6.dll","libwinpthread-1.dll","libssp-0.dll")
           foreach ($dll in $dlls) {
