@@ -19,11 +19,15 @@ jobs:
           arch: win64_mingw
           modules: qtserialport
           tools: tools_mingw1310
+          dir: ${{ github.workspace }}\Qt
 
       - name: Add MinGW to PATH
         shell: pwsh
         run: |
-          $toolsDir = Join-Path (Split-Path "${{ steps.qt.outputs.qt-path }}" -Parent | Split-Path -Parent) "Tools"
+          $qtPath = "${{ steps.qt.outputs.qt-path }}"
+          if (-not $qtPath) { $qtPath = Join-Path $env:GITHUB_WORKSPACE "Qt" }
+          $toolsDir = Join-Path (Split-Path $qtPath -Parent | Split-Path -Parent) "Tools"
+          if (-not (Test-Path $toolsDir)) { $toolsDir = Join-Path $env:GITHUB_WORKSPACE "Qt\\Tools" }
           $mingwDir = Get-ChildItem -Path $toolsDir -Directory | Where-Object { $_.Name -match "mingw" } | Select-Object -First 1
           if (-not $mingwDir) { throw "MinGW tools not found under $toolsDir" }
           Add-Content $env:GITHUB_PATH (Join-Path $mingwDir.FullName "bin")
